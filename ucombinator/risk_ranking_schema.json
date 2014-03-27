@@ -1,0 +1,101 @@
+Example:
+{
+    "annotations": [
+        {
+            "file_name": "com/quickdroid/AppQuery.java",
+            "class_name": "com.quickdroid.AppQuery",
+            "method": "processCall",
+            "start_line": 32,
+            "start_col": 0,
+            "end_line": 35,
+            "end_col": 80,
+            "short_description": "network",
+            "risk_score": 35,
+            "long_description": "",
+            "sub_annotations": [
+                {
+                    "start_line": 33
+                    "end_line": 33
+                    "start_col": 0
+                    "end_col": 10
+                    "description": ""
+                }
+            ]
+        }
+    ]
+}
+
+JSON Schema:
+{
+    "type": "object",
+    "properties": {
+        "annotations": {
+            "description": "List of annotations produced by the analyzer",
+            "type": "array"
+            "items": {
+                "type": "object",
+                "properties": {
+                    "file_name": {
+                        "type": "string"
+                    },
+                    "class_name": {
+                        "type": "string"
+                    },
+                    "method": {
+                        "type": "string"
+                    },
+                    "start_line": {
+                        "type": "integer"
+                    },
+                    "end_line": {
+                        "type": "integer"
+                    },
+                    "start_col": {
+                        "type": "integer"
+                    },
+                    "end_col": {
+                        "type": "integer"
+                    },
+                    "risk_score": {
+                        "type": "integer",
+                        "description": "higher numbers indicate higher risk"
+                    },
+                    "short_description": {
+                        "type": "string",
+                        "description": "shown in annotation listing"
+                    },
+                    "long_description": {
+                        "type": "string",
+                        "description": "shown on line above in source"
+                    },
+                    "highlights": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "start_line": {
+                                    "type": "integer",
+                                },
+                                "end_line": {
+                                    "type": "integer"
+                                },
+                                "start_col": {
+                                    "type": "integer"
+                                },
+                                "end_col": {
+                                    "type": "integer"
+                                },
+                                "description": {
+                                    "type": "string",
+                                }
+                            },
+                            "required": ["start_line", "end_line", "start_col", "end_col"]
+                        }
+                    }
+                },
+                "required": ["file_name", "start_line", "short_description", "long_description"]
+            }
+        }
+    },
+    "required": ["annotations"]
+}
