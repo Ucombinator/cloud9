@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 /*
  * See the NOTICE file distributed with this work for additional
  * information regarding copyright ownership.
@@ -50966,7 +50959,7 @@ apf.datagrid = function(struct, tagName){
             oRow.setAttribute("onmousedown", 'var o = apf.lookup(' + this.$uniqueId + ');\
                 var xmlNode = apf.xmldb.findXmlNode(this);\
                  var isSelected = o.isSelected(xmlNode);\
-                 this.hasPassedDown = true;\
+                 this.hasPassedDown = true;  apf.dispatchEvent(\'rowClicked\', this);  \
                  if (!o.hasFeature(apf.__DRAGDROP__) || !isSelected && !apf.getCtrlKey(event))\
                      o.select(this, apf.getCtrlKey(event), event.shiftKey, -1);'
                 + (this.cellselect || this.namevalue ? 'o.selectCell(event, this, isSelected);' : ''));
@@ -50981,7 +50974,7 @@ apf.datagrid = function(struct, tagName){
         else {
             oRow.setAttribute("onmousedown", 'var o = apf.lookup(' + this.$uniqueId + ');\
                 var wasSelected = o.$selected == this;\
-                o.select(this, apf.getCtrlKey(event), event.shiftKey, -1);'
+                o.select(this, apf.getCtrlKey(event), event.shiftKey, -1);  apf.dispatchEvent(\'rowClicked\', this); ' 
                 + (this.cellselect || this.namevalue ? 'o.selectCell(event, this, wasSelected);' : ''));
         }
         

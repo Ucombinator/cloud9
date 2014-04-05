@@ -107,5 +107,8 @@ package_clean: helper_clean c9core ext
 
 package: helper c9core ext
 
+start:
+	./bin/cloud9.sh -w ./ucombinator/apps
+
 test check:
 	test/run-tests.sh	

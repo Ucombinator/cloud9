@@ -1,0 +1,6 @@
+------------------------------------------------
+Building AgentSmith in Eclipse
+------------------------------------------------
+If Eclipse is set to automatically build projects, as soon as you import a project,
+the project should begin to build.  If Eclipse is not configured to automatically 
+build, select "Build All" from the Project menu.

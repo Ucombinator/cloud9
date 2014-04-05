@@ -1,0 +1,35 @@
+<a:application xmlns:a="http://ajax.org/2005/aml">
+    <a:model id="annotationsModel"/>
+    <a:tab id="riskReportViewTab" visible="false" activepage="0">
+        <a:page id="riskReportView" caption="Risk Report">
+            <a:toolbar>
+              <a:bar>
+               <a:button caption="open risk report" onclick="require('ext/androidanalysis/risk').openRiskReport();"/>
+             </a:bar>
+           </a:toolbar>
+           <a:vsplitbox anchors="29 0 0 0" splitter="true" class="topsplitter">
+           <a:datagrid
+              id         = "annotationsList"
+              anchors    = "0 0 0 0"
+              options    = "size"
+              caching    = "false"
+              drop       = "true"
+              class      = "noscrollbar"
+              scrollbar  = "sbShared 20 2 2"
+              model      = "annotationsModel"
+              loading-message = "Loading annotations...">
+                <a:actions />
+                <a:each match="[annotation]" target="annotationsList">
+                    <a:column caption="Category" type="icon" width="40" value="newspaper.png" />
+                    <a:column caption="Risk"   value="[@risk]"    width="30"/>
+                    <a:column caption="Class"  value="[@class]"   width="60%"/>
+                    <a:column caption="Method" value="[@method]"  width="40%"/>
+                    <a:column caption="Ln"     value="[@ln]"      width="30" />
+                    <a:column caption="Col"    value="[@col]"     width="30" />
+                </a:each>
+            </a:datagrid>
+           </a:vsplitbox>
+        </a:page>
+        
+    </a:tab>
+</a:application>

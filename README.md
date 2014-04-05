@@ -1,3 +1,35 @@
+
+
+# Cloud9 Analyst
+
+follow the build instructions below for your os, then run:
+
+    make start
+
+put apps in the uncombinator folder in this structure:
+   
+cloud9-analyst/
+    ucombinator/
+      apps/ <- 'make start' sets this as the cloud9 workspace directory
+        <App1Name>/
+          project/
+            src/
+            AndroidManifest.xml
+            <App1Name>.apk
+            ...
+          reports/
+            AnadroidRiskReport.json
+            TapasRiskReport.json
+            MyRiskReport.json
+            ...
+
+you can also specify a custom workspace dir following the directions below with:
+
+    cd cloud9-analyst
+    ./bin/cloud9.sh -w <path-to-workspace>
+
+note that the custom workspace should follow the same convention as the apps/ directory
+
 **Issues on c9.io** If you have questions regarding the hosted service at [c9.io](http://c9.io)
 including issues with accounts or payments,
 please file them at [support.c9.io](http://support.cloud9ide.com/home) rather than as a

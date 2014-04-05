@@ -1,0 +1,14 @@
+{
+    "name": "ext.androidanalysis",
+    "version": "0.0.1",
+    "main": "risk.js",
+    "private": true,
+    "plugin": {
+        "provides": [
+            "ext.androidanalysis"
+        ],
+        "consumes": [
+            "client-plugins"
+        ]
+    }
+}

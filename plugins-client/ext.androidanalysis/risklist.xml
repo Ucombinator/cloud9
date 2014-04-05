@@ -1,0 +1,54 @@
+<a:application xmlns:a="http://ajax.org/2005/aml">
+   <a:model id="mdlList">
+      <data>
+        <item date="2009-11-12" deleted="0"></item>
+        <item date="2009-11-11" deleted="0"></item>
+        <item date="2009-11-10" deleted="0"></item>
+        <item date="2009-11-09" deleted="1"></item>
+        <item date="2009-11-08" deleted="1"></item>
+      </data>
+    </a:model>
+    
+           <a:toolbar>
+       
+            <a:bar border="0 0 1 0">
+            
+                <a:button
+                  caption  = "Open" 
+                  tooltip  = "Ctrl+Enter"
+                  onclick  = "require('ext/androidanalysis/risk').open()" />
+                <a:button
+                  caption  = "Save" 
+                  onclick  = "require('ext/androidanalysis/risk').save()" />                 
+                  
+                <a:divider skin2="c9-divider"/>
+                
+            </a:bar>
+            
+        </a:toolbar>
+    <a:window
+      id        = "riskReportView"
+      title     = "Android Analysis"
+      center    = "true"
+      modal     = "false"
+      buttons   = "close"
+      skin      = "bk-window"
+      kbclose   = "true"
+      class     = "relative"
+      height    = "300"
+      width     = "300">
+        <a:vbox>
+            <a:hbox padding="5" edge="10">
+                Hello World!
+            </a:hbox>
+            <a:hbox pack="end" padding="5" edge="6 10 10">
+                <a:button 
+                  caption = "Close" 
+                  skin    = "btn-default-css3"
+                  onclick = "require('ext/androidanalysis/risk').closeExtensionTemplateWindow();"
+                 />
+            </a:hbox>
+            <a:list id="list" model="mdlList" width="200" height="200" each="[item[not(@deleted='1')]]" caption="[@date]"/>
+        </a:vbox>
+    </a:window>
+</a:application>
