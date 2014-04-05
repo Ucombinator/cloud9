@@ -4,7 +4,7 @@
         <a:page id="riskReportView" caption="Risk Report">
             <a:toolbar>
               <a:bar>
-               <a:button caption="open risk report" onclick="require('ext/androidanalysis/risk').openRiskReport();"/>
+               <a:button caption="save" onclick="require('ext/androidanalysis/risk').save();"/>
              </a:bar>
            </a:toolbar>
            <a:vsplitbox anchors="29 0 0 0" splitter="true" class="topsplitter">

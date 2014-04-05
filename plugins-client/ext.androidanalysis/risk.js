@@ -219,7 +219,7 @@ module.exports = ext.register("ext/androidanalysis/risk", {
       return xml;
     },
     save: function() {
-      console.log('save');
+      util.alert('Save Risk Report', 'Saving a risk report is unimplemented', 'Come back soon!');
     },
     clearPreviousHighlights: function () {
     
