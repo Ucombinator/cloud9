@@ -39,7 +39,7 @@ module.exports = ext.register("ext/androidanalysis/risk", {
     riskReport: null,
     /* { description: , file: , ln: , col:  } */
     highlighted: null,
-    init : function(){
+    init : function () {
         this.riskReportView = riskReportView;
         var _self = this;
         
@@ -52,11 +52,20 @@ module.exports = ext.register("ext/androidanalysis/risk", {
             var path;
             if(e.data.length > 0 && (path = e.data[0].getAttribute("path"))) {
                 console.log('dropped file ' + path + ' on risk report grid'); 
-                _self.openRiskReport(path);
+                _self.openRiskReport(path, chkShowSinks.checked);
             }
             // TODO: get rid of the fly back animation on the cancelled drop somehow
             return false; //cancel the drop to avoid messing up the dom
         });
+        
+        apf.addListener(annotationsList, 'keydown', function (e) {
+            var pressed = e.htmlEvent.keyIdentifier;
+            if(pressed == 'Down' || pressed == 'Up') {
+              _self.clearPreviousHighlights();
+              _self.jumpToAndHighlight();
+            }
+        });
+        
         
         commands.addCommand({
             name: "android_analysis",
@@ -148,6 +157,25 @@ module.exports = ext.register("ext/androidanalysis/risk", {
         //riskReportViewTab.destroy(true, true);
         this.$layoutItem.destroy(true, true);
     },
+    transformRiskReport: function (json, path) {
+      var _path = path.split('/');
+      _path.pop(); // remove filename
+      _path.pop(); // remove reports dir
+      var workspacePath = _path.join('/') + '/project/src/'; //convention, should we do this?
+      for(var i = 0; i < json.annotations.length; i++) {
+        var an = json.annotations[i];
+        var javaPkg = an.class_name.split('.');
+        // remove classname on end
+        var className = javaPkg.pop();
+        var relativePath = javaPkg.join('/');
+        // add post processed properties in order to:
+        // 1) make the grid easier to read
+        // 2) and the file lookup easier
+        an.clazzName = className;
+        an.fullPath = workspacePath + relativePath + '/' + an.file_name;
+      }
+      return json;
+    }, 
     openRiskReport: function(path) {
         var _self = this;
         var baseUrl = apf.host;
@@ -156,50 +184,62 @@ module.exports = ext.register("ext/androidanalysis/risk", {
         http.getJSON(baseUrl + path, function(json, state, extra){
             if (state != apf.SUCCESS)
                 return util.alert('Failed to load file', 'http.get('+path+') failed.', 'Is the file path correct?');
-            var _path = path.split('/');
-            _path.pop(); // remove filename
-            _path.pop(); // remove reports dir
-            var workspacePath = _path.join('/') + '/project/src/'; //convention, should we do this?
-            for(var i = 0; i < json.annotations.length; i++) {
-              var an = json.annotations[i];
-              var javaPkg = an.class_name.split('.');
-              // remove classname on end
-              var className = javaPkg.pop();
-              var relativePath = javaPkg.join('/');
-              // add post processed properties in order to:
-              // 1) make the grid easier to read
-              // 2) and the file lookup easier
-              an.className = className;
-              an.fullPath = workspacePath + relativePath + '/' + an.file_name;
-            }
-            
-            //var fileNode = _self.getFileNode(path);
-            //var riskReportFileContents = ide.createDocument(fileNode).getValue();
-            var annotationsXml = _self.riskReportAsXml(json);
-            annotationsList.getModel().load('<data>\n' + annotationsXml + '</data>');
+            _self.riskReport = _self.transformRiskReport(json, path);
+            _self.loadRiskReportModel(_self.riskReport);
         });
     },
+    toggleShowSinks:  function () {
+       if(this.riskReport) {
+          this.loadRiskReportModel(this.riskReport);
+       }
+    },
+    loadRiskReportModel: function (riskReport) {
+         if(riskReport) {
+           var annotationsXml = this.riskReportAsXml(riskReport, chkShowSinks.checked);
+           annotationsList.getModel().load('<data>\n' + annotationsXml + '</data>');
+         } else {
+           annotationsList.getModel().load('');
+         }
+    },
     // model requires xml format :(
-    riskReportAsXml: function (riskReport) {
+    // flatten makes sub annotations siblings of annotations
+    riskReportAsXml: function (riskReport, flatten) {
       if(!riskReport || !riskReport.annotations) return;
       
       var xml = '';
+      var annotations = riskReport.annotations;
+      
+      if(flatten) {
+        annotations = [];
+        for(var i = 0; i < riskReport.annotations.length; i++) {
+          var an = riskReport.annotations[i];
+          annotations.push(an);
+          if(!an.sub_annotations) continue;
+          for(var j = 0; j < an.sub_annotations.length; j++) {
+            var san = an.sub_annotations[j];
+            san.fullPath = an.fullPath;
+            annotations.push(san);
+          }
+        }
+      }
 
       function annotationAsXml(an) {
         // converting package of class to filepath (
         // relative to Android project dir)
-
+        
         var aXml = util.toXmlTag("annotation", {
             ln: an.start_line,
             col: an.start_col,
-            'class': an.className,
+            'clazz': an.clazzName || '-', // allowing alternates for flattening sub_annotations
             filename: an.fullPath,
-            risk: an.risk_score,
-            method: an.method
+            risk: an.risk_score || '-',
+            method: an.method || an.description
         }, true /*exclude self-closing slash*/);
         var subsXml = ' <subannotations>\n';
-        for(var i = 0; i < an.sub_annotations.length; i++) {
+        if(an.sub_annotations) {
+          for(var i = 0; i < an.sub_annotations.length; i++) {
             subsXml += '   ' + subAnnotationAsXml(an.sub_annotations[i]) + '\n'
+          }
         }
         return aXml + '\n' + subsXml +  ' </subannotations>\n</annotation>';
       }
@@ -213,13 +253,17 @@ module.exports = ext.register("ext/androidanalysis/risk", {
          return subAXml;
       }
       
-      for(var i = 0; i < riskReport.annotations.length; i++) {
-          xml +=  annotationAsXml(riskReport.annotations[i]) + '\n';
+      for(var i = 0; i < annotations.length; i++) {
+          xml +=  annotationAsXml(annotations[i]) + '\n';
       }
       return xml;
     },
     save: function() {
       util.alert('Save Risk Report', 'Saving a risk report is unimplemented', 'Come back soon!');
+    },
+    close: function() {
+      this.riskReport = null;
+      this.loadRiskReportModel();
     },
     clearPreviousHighlights: function () {
     
@@ -262,6 +306,7 @@ module.exports = ext.register("ext/androidanalysis/risk", {
             ide.removeEventListener('jumpedToFile', onJumpToFileComplete);
             console.log(e);
             drawHighlights();
+            annotationsList.focus();
         }
         
         ide.addEventListener('changeAnnotation', drawHighlights);
