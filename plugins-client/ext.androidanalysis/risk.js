@@ -183,7 +183,7 @@ module.exports = ext.register("ext/androidanalysis/risk", {
         var http = new apf.http();
         http.getJSON(baseUrl + path, function(json, state, extra){
             if (state != apf.SUCCESS)
-                return util.alert('Failed to load file', 'http.get('+path+') failed.', 'Is the file path correct?');
+                return util.alert('Failed to load Risk Report', 'Error loading file: ' + extra.message, 'open the file and verify the format is correct.');
             _self.riskReport = _self.transformRiskReport(json, path);
             _self.loadRiskReportModel(_self.riskReport);
         });

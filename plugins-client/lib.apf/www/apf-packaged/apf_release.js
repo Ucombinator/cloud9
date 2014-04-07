@@ -14639,9 +14639,13 @@ apf.http = function(){
         if (http.status > 600)
             return this.$timeout(id);
 
-        extra.data = qItem.options.useJSON 
-            ? eval("(" + http.responseText + ")") 
-            : http.responseText; //Can this error?
+        try{
+            extra.data = qItem.options.useJSON 
+                ? JSON.parse(http.responseText) 
+                : http.responseText;
+        } catch(e) {
+            errorMessage.push(e); 
+        }
 
         if (http.status >= 400 && http.status < 600 || http.status < 10 
           && (http.status != 0 || !apf.isIE && !http.responseText)) { //qItem.url.substr(0, 6) == "file:/"
