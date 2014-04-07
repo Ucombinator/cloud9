@@ -278,7 +278,7 @@ module.exports = ext.register("ext/androidanalysis/risk", {
         function drawHighlights() {
             ide.removeEventListener('changeAnnotation', drawHighlights);
             //var openBracePos = doc.findMatchingBracket({row: row, column: column});
-            var startLine = parseInt(anot.getAttribute("ln"));
+            var startLine = Math.max(0,parseInt(anot.getAttribute("ln")) - 1);
             var startCol  = parseInt(anot.getAttribute("col"));
             var session = editors.currentEditor.amlEditor.getSession();
 
