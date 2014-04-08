@@ -8,6 +8,7 @@
     border-radius: 6px;
     z-index: 2000;
     padding: 0 2px 0 2px;
+    pointer-events: auto;
 }
 
 .sub_annotation {
@@ -21,3 +22,4 @@
     z-index: 2000;
     padding: 0 2px 0 2px;
 }
+

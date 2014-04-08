@@ -137,10 +137,10 @@ var config = [
             "ext/anims/anims",
             "ext/guidedtour/guidedtour",
             "ext/quickstart/quickstart",
-            "ext/jslanguage/jslanguage",
-            "ext/csslanguage/csslanguage",
-            "ext/htmllanguage/htmllanguage",
-            "ext/autotest/autotest",
+            //"ext/jslanguage/jslanguage",
+            //"ext/csslanguage/csslanguage",
+            //"ext/htmllanguage/htmllanguage",
+            //"ext/autotest/autotest",
             "ext/closeconfirmation/closeconfirmation",
             "ext/codetools/codetools",
             "ext/colorpicker/colorpicker",
@@ -148,7 +148,7 @@ var config = [
             //"ext/githistory/githistory",
             "ext/autosave/autosave",
             "ext/revisions/revisions",
-            "ext/language/liveinspect",
+            //"ext/language/liveinspect",
             "ext/splitview/splitview",
             "ext/androidanalysis/risk"
         ]

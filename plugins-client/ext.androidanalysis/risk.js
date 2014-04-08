@@ -274,6 +274,12 @@ module.exports = ext.register("ext/androidanalysis/risk", {
     clearPreviousHighlights: function () {
     
     },
+    removeMarkers: function(session) { 
+        var markers = session.getMarkers(false); 
+        for (var id in markers) 
+            if (markers[id].clazz.indexOf('_annotation') != -1) 
+                session.removeMarker(id); 
+    },
     jumpToAndHighlight: function () {
       var _self = this;
       var selectedItems = annotationsList.getSelection();
@@ -283,14 +289,28 @@ module.exports = ext.register("ext/androidanalysis/risk", {
         // to lookup the item in the backing object
         var idx = parseInt(selectedItems[0].getAttribute('annotationIndex'));
         var anot = this.riskReport.annotations[idx];
+        var currEditor = editors.currentEditor;
+  
+        if(currEditor) {
+          var currSession = currEditor.amlEditor.getSession();
+          this.removeMarkers(currSession);
+        }
+        
         function drawHighlights() {
             ide.removeEventListener('changeAnnotation', drawHighlights);
+            if(!editors.currentEditor) return;
+            
             //var openBracePos = doc.findMatchingBracket({row: row, column: column});
             var firstInstrStartLine = anot.start_line - 1;
             var startLine = firstInstrStartLine;
             var startCol  = anot.start_col;
-            var session = editors.currentEditor.amlEditor.getSession();
+            var editor  = editors.currentEditor.amlEditor.$editor;
+            var session = editor.getSession();
             var doc = session.getDocument();
+            
+            editor.on('blur', function () {
+              if(session) _self.removeMarkers(session);
+            });
             
             // the language worker clears the annotations, so wait for it to do it's work,
             // then add our annotations over the top
@@ -309,13 +329,22 @@ module.exports = ext.register("ext/androidanalysis/risk", {
                     text: anot.method + ' (risk: ' + anot.risk_score + ')',
                     type: 'info' // also warning and information
                 });
-                //TODO remove old markers
                 
                 //markers: highlights source code
                 _self.markerId = session.addMarker(
                    new Range(startLine, startCol, startLine, (startCol + anot.method.length)-1),
-                   "risk_annotation", "text"
-                ); 
+                   'risk_annotation', function(stringBuilder, range, left, top, viewport) {
+                        var charWidth = viewport.characterWidth;
+                        var width = (range.end.column - range.start.column) * charWidth;
+                        stringBuilder.push(
+                            "<div class='risk_annotation' style='",
+                            "left:", left, "px;",
+                            "top:", top, "px;",
+                            "width:", width, "px;",
+                            "height:", viewport.lineHeight, "px;' ", 
+                            'onclick="console.log(\'why not print this?\')"',">", "</div>"
+                        );
+                    }, false);
                 
                 for(var i = 0; i < anot.sub_annotations.length; i++) {
                    var san = anot.sub_annotations[i];
@@ -332,8 +361,17 @@ module.exports = ext.register("ext/androidanalysis/risk", {
                    if(sanStartCol != -1) {
                      _self.markerId = session.addMarker(
                        new Range(sanStartLine, sanStartCol, sanStartLine, (sanStartCol + sanMethod.length)-1),
-                       "sub_annotation", "text"
-                     );
+                       "sub_annotation", function(stringBuilder, range, left, top, viewport) {
+                            var charWidth = viewport.characterWidth;
+                            var width = (range.end.column - range.start.column) * charWidth;
+                            stringBuilder.push(
+                                "<div class='sub_annotation' style='",
+                                "left:", left, "px;",
+                                "top:", top, "px;",
+                                "width:", width, "px;",
+                                "height:", viewport.lineHeight, "px;'", ">", "</div>"
+                            );
+                        }, false);
                    }                      
                 }
 
