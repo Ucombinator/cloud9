@@ -172,6 +172,9 @@ module.exports = ext.register("ext/androidanalysis/risk", {
         // 1) make the grid easier to read
         // 2) and the file lookup easier
         an.clazzName = className;
+        // for looking up in callbacks
+        //  and reordering annotations easily
+        an.annotationIndex = i;
         an.fullPath = workspacePath + relativePath + '/' + an.file_name;
       }
       return json;
@@ -183,7 +186,9 @@ module.exports = ext.register("ext/androidanalysis/risk", {
         var http = new apf.http();
         http.getJSON(baseUrl + path, function(json, state, extra){
             if (state != apf.SUCCESS)
-                return util.alert('Failed to load Risk Report', 'Error loading file: ' + extra.message, 'open the file and verify the format is correct.');
+                return util.alert('Failed to load Risk Report', 
+                  'Encountered: ' + extra.message, 
+                  'open the file and verify the format is correct.');
             _self.riskReport = _self.transformRiskReport(json, path);
             _self.loadRiskReportModel(_self.riskReport);
         });
@@ -232,6 +237,7 @@ module.exports = ext.register("ext/androidanalysis/risk", {
             col: an.start_col,
             'clazz': an.clazzName || '-', // allowing alternates for flattening sub_annotations
             filename: an.fullPath,
+            annotationIndex: an.annotationIndex,
             risk: an.risk_score || '-',
             method: an.method || an.description
         }, true /*exclude self-closing slash*/);
@@ -273,33 +279,66 @@ module.exports = ext.register("ext/androidanalysis/risk", {
       var selectedItems = annotationsList.getSelection();
       
       if(selectedItems.length > 0) {
-          
-        var anot = selectedItems[0];
+        // the index property is injected into the xml model as a way
+        // to lookup the item in the backing object
+        var idx = parseInt(selectedItems[0].getAttribute('annotationIndex'));
+        var anot = this.riskReport.annotations[idx];
         function drawHighlights() {
             ide.removeEventListener('changeAnnotation', drawHighlights);
             //var openBracePos = doc.findMatchingBracket({row: row, column: column});
-            var startLine = Math.max(0,parseInt(anot.getAttribute("ln")) - 1);
-            var startCol  = parseInt(anot.getAttribute("col"));
+            var firstInstrStartLine = anot.start_line - 1;
+            var startLine = firstInstrStartLine;
+            var startCol  = anot.start_col;
             var session = editors.currentEditor.amlEditor.getSession();
-
+            var doc = session.getDocument();
+            
             // the language worker clears the annotations, so wait for it to do it's work,
             // then add our annotations over the top
             // (although this may not be a problem for read-only java files...)
             setTimeout(function () {
+                while((startCol = doc.getLine(startLine).indexOf(anot.method)) == -1) { 
+                  startLine -= 1;
+                  if(startLine < 0) break; //TODO not found! 
+                }
                 var annotations = session.getAnnotations();
+                
+                //annotation: adds the mouseover gutter marker
                 annotations.push({
                     row: startLine,
                     column: startCol,
-                    text: anot.getAttribute("method") + ' (risk: ' + anot.getAttribute("risk") + ')',
-                    type: "error" // also warning and information
+                    text: anot.method + ' (risk: ' + anot.risk_score + ')',
+                    type: 'info' // also warning and information
                 });
-                //adds a mousover gutter marker
+                //TODO remove old markers
+                
+                //markers: highlights source code
+                _self.markerId = session.addMarker(
+                   new Range(startLine, startCol, startLine, (startCol + anot.method.length)-1),
+                   "risk_annotation", "text"
+                ); 
+                
+                for(var i = 0; i < anot.sub_annotations.length; i++) {
+                   var san = anot.sub_annotations[i];
+                   var sanStartLine = san.start_line - 1;
+                   annotations.push({
+                     row: sanStartLine,
+                     column: san.start_col,
+                     text: san.description,
+                     type: 'info'
+                   })
+                   var sanMethod = san.description.split('.').pop();
+                   var sanStartCol = doc.getLine(sanStartLine).indexOf(sanMethod);
+                   
+                   if(sanStartCol != -1) {
+                     _self.markerId = session.addMarker(
+                       new Range(sanStartLine, sanStartCol, sanStartLine, (sanStartCol + sanMethod.length)-1),
+                       "sub_annotation", "text"
+                     );
+                   }                      
+                }
+
                 session.setAnnotations(annotations);
-                //TODO change to use endLine, endCol, type "text" instead of type "line"
-                //highlights source code
-                if(_self.markerId) session.removeMarker(_self.markerId);
-                _self.markerId = session.addMarker(new Range(startLine, 0, startLine, 70),"risk_annotation", "text"); 
-            }, 500);
+            }, 600);
         }
           
         function onJumpToFileComplete(e) {
@@ -313,9 +352,9 @@ module.exports = ext.register("ext/androidanalysis/risk", {
         ide.addEventListener('jumpedToFile', onJumpToFileComplete);
 
         this.jumpToFile({
-          row: parseInt(anot.getAttribute("ln")),
-          column: parseInt(anot.getAttribute("col")),
-          path: anot.getAttribute("filename")
+          row: anot.start_line,
+          column: anot.start_col,
+          path: anot.fullPath
         });
       }
 

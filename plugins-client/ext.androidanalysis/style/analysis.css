@@ -1,8 +1,20 @@
 .risk_annotation {
     position: absolute;
-    opacity: 0.5;
-    border: 1px solid #faf2be;
-    background-color: #eb1212;
+    opacity: 0.3;
+    border: 1px solid #c7c17e;
+    background-color: #45b319;
+    -webkit-border-radius: 6px;
+    -moz-border-radius: 6px;
+    border-radius: 6px;
+    z-index: 2000;
+    padding: 0 2px 0 2px;
+}
+
+.sub_annotation {
+    position: absolute;
+    opacity: 0.3;
+    border: 1px solid #e60000;
+    background-color: #d62727;
     -webkit-border-radius: 6px;
     -moz-border-radius: 6px;
     border-radius: 6px;
