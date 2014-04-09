@@ -206,19 +206,21 @@ module.exports = ext.register("ext/androidanalysis/risk", {
       var workspacePath = _path.join('/') + '/project/src/'; //convention, should we do this?
       for(var i = 0; i < json.annotations.length; i++) {
         var an = json.annotations[i];
-        //TODO handle inner classes to get correct filename
-        var javaPkg = an.class_name.split('.');
-        // remove classname on end
-        var className = javaPkg.pop();
-        var relativePath = javaPkg.join('/');
-        // add post processed properties in order to:
+        // adding post processed properties in order to:
         // 1) make the grid easier to read
         // 2) and the file lookup easier
-        an.clazzName = className;
         // for looking up in callbacks
         //  and reordering annotations easily
+        var javaPkg = an.class_name.split('.');
+        an.clazzName = javaPkg.pop();
+        var relativePath = javaPkg.join('/');
         an.annotationIndex = i;
         an.fullPath = workspacePath + relativePath + '/' + an.file_name;
+        
+        for(var j = 0; j < an.sub_annotations.length; j++) {
+          var san = an.sub_annotations[j];
+          san.clazzName = san.class_name.split('.').pop();
+        }
       }
       return json;
     }, 
@@ -278,11 +280,12 @@ module.exports = ext.register("ext/androidanalysis/risk", {
         var aXml = util.toXmlTag("annotation", {
             ln: an.start_line,
             col: an.start_col,
-            'clazz': an.clazzName || '-', // allowing alternates for flattening sub_annotations
+            clazz: an.clazzName || '-', // allowing alternates for flattening sub_annotations
             filename: an.fullPath,
             annotationIndex: an.annotationIndex,
             risk: an.risk_score || '-',
-            method: an.method || an.description
+            method: an.method,
+            description: an.long_description
         }, true /*exclude self-closing slash*/);
         var subsXml = ' <subannotations>\n';
         if(an.sub_annotations) {
@@ -297,6 +300,9 @@ module.exports = ext.register("ext/androidanalysis/risk", {
         var subAXml = util.toXmlTag("subannotation", {
             ln: san.start_line,
             col: san.start_col,
+            method: san.method,
+            clazz: san.class_name,
+            risk: san.risk_score,
             description: san.description
         }, false /*include self-closing slash*/);
          return subAXml;
@@ -422,10 +428,10 @@ module.exports = ext.register("ext/androidanalysis/risk", {
                    //  text: san.description,
                    //  type: 'info'
                    //})
-                   var descriptionParts = san.description.split(/[$.]/);
-                   var sanMethod  = descriptionParts.pop();
-                   // try for the classname if the method is the constructor
-                   if(sanMethod == '<init>') sanMethod = descriptionParts.pop();
+                   var sanMethod = (san.method == '<init>') ? 
+                     san.clazzName.split(/[$.]/).pop() :
+                     san.method;
+
                    var pattern    = '(.\\s*)?'+sanMethod+'\\s*\\(';
                    var firstMatch = new RegExp(pattern, 'm').exec(doc.getLine(sanStartLine));
                    if(firstMatch) {

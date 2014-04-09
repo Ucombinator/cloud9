@@ -43,10 +43,12 @@
               empty-message = "No sub annotations">
                 <a:actions />
                 <a:each match="[subannotation]" sort="[@ln]" data-type="number" order="ascending">
-                    <a:column caption="Risk"   value="[@risk]"    width="30"/>
-                    <a:column caption="Description" value="[@description]" width="100%"/>
-                    <a:column caption="Ln"     value="[@ln]"      width="30" />
-                    <a:column caption="Col"    value="[@col]"     width="30" />
+                    <a:column caption="Risk"        value="[@risk]"    width="30"/>
+                    <a:column caption="Description" value="[@description]" width="20%"/>
+                    <a:column caption="Pkg"         value="[@clazz]"   width="40%"/>
+                    <a:column caption="Method"      value="[@method]"  width="40%"/>
+                    <a:column caption="Ln"          value="[@ln]"      width="30" />
+                    <a:column caption="Col"         value="[@col]"     width="30" />
                 </a:each>
             </a:datagrid>
            </a:vsplitbox>
