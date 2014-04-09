@@ -20,6 +20,7 @@ var util = require("core/util");
 var editors = require("ext/editors/editors");
 var fs = require("ext/filesystem/filesystem");
 var Range = require("ace/range").Range;
+var Selection = require("ace/selection").Selection;
 var menus = require("ext/menus/menus");
 var dock = require("ext/dockpanel/dockpanel");
 var commands = require("ext/commands/commands");
@@ -43,27 +44,68 @@ module.exports = ext.register("ext/androidanalysis/risk", {
         this.riskReportView = riskReportView;
         var _self = this;
         
-        apf.addEventListener('rowClicked', function(row) {
-            _self.clearPreviousHighlights();
-            _self.jumpToAndHighlight();
+        
+        apf.addEventListener('rowClicked', function(e) {
+           _self.clearPreviousHighlights();
+           _self.jumpToAndHighlight((e.owner.id == 'subAnnotationsList'));              
         });
 
         apf.addListener(annotationsList, 'dragdrop', function (e) {
             var path;
             if(e.data.length > 0 && (path = e.data[0].getAttribute("path"))) {
                 console.log('dropped file ' + path + ' on risk report grid'); 
-                _self.openRiskReport(path, chkShowSinks.checked);
+                _self.openRiskReport(path);
             }
             // TODO: get rid of the fly back animation on the cancelled drop somehow
             return false; //cancel the drop to avoid messing up the dom
         });
+        
+        apf.addListener(subAnnotationsList, 'keydown', function(e) {
+            var pressed = e.htmlEvent.keyIdentifier;
+            if(pressed == 'Down' || pressed == 'Up') {
+              _self.clearPreviousHighlights();
+              _self.jumpToAndHighlight(true);
+            } else if (pressed == 'Left' || pressed == 'Right') {
+              annotationsList.focus();
+            }
+        })
+        
+        apf.addListener(subAnnotationsList, 'focus', function(e) {
+            _self.jumpToAndHighlight(true);
+        })
+        
+        apf.addListener(annotationsList, 'focus', function(e) {
+            _self.jumpToAndHighlight();
+        })
         
         apf.addListener(annotationsList, 'keydown', function (e) {
             var pressed = e.htmlEvent.keyIdentifier;
             if(pressed == 'Down' || pressed == 'Up') {
               _self.clearPreviousHighlights();
               _self.jumpToAndHighlight();
+            } else if (pressed == 'Left' || pressed == 'Right') {
+              subAnnotationsList.focus();
             }
+            
+             /*else if(pressed == 'Right') {
+              console.log('Right');
+              subAnnotationsList.focus();
+              e.htmlEvent.keyIdentifier = 'Down';
+              setTimeout(function () {
+                apf.dispatchEvent('keydown', e)
+                //annotationsList.focus();
+              }, 30);
+              return false;
+            } else if(pressed == 'Left') {
+              console.log('Left');
+              subAnnotationsList.focus();
+              e.htmlEvent.keyIdentifier = 'Up';
+              setTimeout(function () {
+                apf.dispatchEvent('keydown', e)
+                //annotationsList.focus();
+              }, 30);
+              return false;
+            }*/
         });
         
         
@@ -164,6 +206,7 @@ module.exports = ext.register("ext/androidanalysis/risk", {
       var workspacePath = _path.join('/') + '/project/src/'; //convention, should we do this?
       for(var i = 0; i < json.annotations.length; i++) {
         var an = json.annotations[i];
+        //TODO handle inner classes to get correct filename
         var javaPkg = an.class_name.split('.');
         // remove classname on end
         var className = javaPkg.pop();
@@ -200,7 +243,7 @@ module.exports = ext.register("ext/androidanalysis/risk", {
     },
     loadRiskReportModel: function (riskReport) {
          if(riskReport) {
-           var annotationsXml = this.riskReportAsXml(riskReport, chkShowSinks.checked);
+           var annotationsXml = this.riskReportAsXml(riskReport);
            annotationsList.getModel().load('<data>\n' + annotationsXml + '</data>');
          } else {
            annotationsList.getModel().load('');
@@ -280,11 +323,17 @@ module.exports = ext.register("ext/androidanalysis/risk", {
             if (markers[id].clazz.indexOf('_annotation') != -1) 
                 session.removeMarker(id); 
     },
-    jumpToAndHighlight: function () {
+    jumpToAndHighlight: function (sub) {
       var _self = this;
-      var selectedItems = annotationsList.getSelection();
       
+      var selectedSubItems = subAnnotationsList.getSelection();
+      
+      var selectedItems = annotationsList.getSelection();
       if(selectedItems.length > 0) {
+        //update the subAnnotationList
+        subAnnotationsList.setModel(selectedItems[0].childNodes[1])
+        
+      
         // the index property is injected into the xml model as a way
         // to lookup the item in the backing object
         var idx = parseInt(selectedItems[0].getAttribute('annotationIndex'));
@@ -316,23 +365,41 @@ module.exports = ext.register("ext/androidanalysis/risk", {
             // then add our annotations over the top
             // (although this may not be a problem for read-only java files...)
             setTimeout(function () {
-                while((startCol = doc.getLine(startLine).indexOf(anot.method)) == -1) { 
-                  startLine -= 1;
-                  if(startLine < 0) break; //TODO not found! 
+                // find method name in document
+                var searchText = (anot.method != '<init>') ? anot.method : anot.clazzName.split('$').pop();
+                
+                while((startCol = doc.getLine(startLine).indexOf(searchText)) == -1) { 
+                  if(--startLine < 0) break; //TODO method is <init> or something 
                 }
                 var annotations = session.getAnnotations();
                 
-                //annotation: adds the mouseover gutter marker
-                annotations.push({
-                    row: startLine,
-                    column: startCol,
-                    text: anot.method + ' (risk: ' + anot.risk_score + ')',
-                    type: 'info' // also warning and information
-                });
+                // find method body bounds in document
+                var openBraceLine = startLine;
+                var openBraceCol;
+                while((openBraceCol = doc.getLine(openBraceLine).indexOf('{')) == -1) {
+                  if(++openBraceLine == doc.getLength()) break; //TODO if source code has errors...
+                }
+               
+                var closingBrace = session.findMatchingBracket({row: openBraceLine, column: openBraceCol+1})
                 
+                //TODO highlight the method, although this did not work
+                //if(closingBrace) {
+                //  new Selection(session)
+                //    .addRange(new Range(openBraceLine, openBraceCol, closingBrace.row, closingBrace.column));
+                //}
+                
+                // these disappear sometimes, so just removing them for now
+                //annotation: adds the mouseover gutter marker
+                //annotations.push({
+                //    row: startLine,
+                //    column: startCol,
+                //    text: anot.method + ' (risk: ' + anot.risk_score + ')',
+                //    type: 'info' // also warning and information
+                //});
+
                 //markers: highlights source code
                 _self.markerId = session.addMarker(
-                   new Range(startLine, startCol, startLine, (startCol + anot.method.length)-1),
+                   new Range(startLine, startCol, startLine, (startCol + searchText.length)),
                    'risk_annotation', function(stringBuilder, range, left, top, viewport) {
                         var charWidth = viewport.characterWidth;
                         var width = (range.end.column - range.start.column) * charWidth;
@@ -349,19 +416,24 @@ module.exports = ext.register("ext/androidanalysis/risk", {
                 for(var i = 0; i < anot.sub_annotations.length; i++) {
                    var san = anot.sub_annotations[i];
                    var sanStartLine = san.start_line - 1;
-                   annotations.push({
-                     row: sanStartLine,
-                     column: san.start_col,
-                     text: san.description,
-                     type: 'info'
-                   })
-                   var sanMethod = san.description.split('.').pop();
-                   var sanStartCol = doc.getLine(sanStartLine).indexOf(sanMethod);
-                   
-                   if(sanStartCol != -1) {
+                   //annotations.push({
+                   //  row: sanStartLine,
+                   //  column: san.start_col,
+                   //  text: san.description,
+                   //  type: 'info'
+                   //})
+                   var descriptionParts = san.description.split(/[$.]/);
+                   var sanMethod  = descriptionParts.pop();
+                   // try for the classname if the method is the constructor
+                   if(sanMethod == '<init>') sanMethod = descriptionParts.pop();
+                   var pattern    = '(.\\s*)?'+sanMethod+'\\s*\\(';
+                   var firstMatch = new RegExp(pattern, 'm').exec(doc.getLine(sanStartLine));
+                   if(firstMatch) {
                      _self.markerId = session.addMarker(
-                       new Range(sanStartLine, sanStartCol, sanStartLine, (sanStartCol + sanMethod.length)-1),
-                       "sub_annotation", function(stringBuilder, range, left, top, viewport) {
+                        new Range(sanStartLine, firstMatch.index, 
+                                  sanStartLine, firstMatch.index + firstMatch[0].length),
+                        "sub_annotation", 
+                        function(stringBuilder, range, left, top, viewport) {
                             var charWidth = viewport.characterWidth;
                             var width = (range.end.column - range.start.column) * charWidth;
                             stringBuilder.push(
@@ -371,32 +443,35 @@ module.exports = ext.register("ext/androidanalysis/risk", {
                                 "width:", width, "px;",
                                 "height:", viewport.lineHeight, "px;'", ">", "</div>"
                             );
-                        }, false);
+                        }, 
+                        false);
                    }                      
                 }
 
-                session.setAnnotations(annotations);
-            }, 600);
+                //session.setAnnotations(annotations);
+            }, 50);
         }
           
         function onJumpToFileComplete(e) {
             ide.removeEventListener('jumpedToFile', onJumpToFileComplete);
             console.log(e);
             drawHighlights();
-            annotationsList.focus();
+            if(sub) subAnnotationsList.focus() 
+            else    annotationsList.focus();
         }
         
         ide.addEventListener('changeAnnotation', drawHighlights);
         ide.addEventListener('jumpedToFile', onJumpToFileComplete);
 
         this.jumpToFile({
-          row: anot.start_line,
+          row: (sub && selectedSubItems.length > 0 ?  
+            parseInt(selectedSubItems[0].getAttribute('ln')): anot.start_line) -1,
           column: anot.start_col,
           path: anot.fullPath
         });
+      } else {
+        console.log('no risk annotation selected to jump to.');
       }
-
-      
     },
     getFileNode: function (path) {
         var file;

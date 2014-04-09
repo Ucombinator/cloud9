@@ -1,12 +1,11 @@
 <a:application xmlns:a="http://ajax.org/2005/aml">
     <a:model id="annotationsModel"/>
+    <a:model id="subAnnotationsModel"/>
     <a:tab id="riskReportViewTab" visible="false" activepage="0">
         <a:page id="riskReportView" caption="Risk Report">
             <a:toolbar>
               <a:bar>
-               <a:button caption="save" onclick="require('ext/androidanalysis/risk').save();"/>
                <a:button caption="close" onclick="require('ext/androidanalysis/risk').close();"/>
-               <a:checkbox id="chkShowSinks" onclick="require('ext/androidanalysis/risk').toggleShowSinks();">show sinks</a:checkbox>
              </a:bar>
            </a:toolbar>
            <a:vsplitbox anchors="29 0 0 0" splitter="true" class="topsplitter">
@@ -14,7 +13,9 @@
               id         = "annotationsList"
               anchors    = "0 0 0 0"
               caching    = "false"
+              options    = "size"
               drop       = "true"
+              minheight  = "100"
               class      = "noscrollbar"
               scrollbar  = "sbShared 20 2 2"
               focussable = "true"
@@ -22,11 +23,28 @@
               loading-message = "Drag and drop a risk report here"
               empty-message = "Drag and drop a risk report here">
                 <a:actions />
-                <a:each match="[annotation]">
-                    <a:column caption="Category" type="icon" width="40" value="newspaper.png" />
+                <a:each match="[annotation]" sort="[@risk]" data-type="number" order="descending">
                     <a:column caption="Risk"   value="[@risk]"    width="30"/>
                     <a:column caption="Class"  value="[@clazz]"   width="50%"/>
                     <a:column caption="Method" value="[@method]"  width="50%"/>
+                    <a:column caption="Ln"     value="[@ln]"      width="30" />
+                    <a:column caption="Col"    value="[@col]"     width="30" />
+                </a:each>
+            </a:datagrid>
+           <a:datagrid
+              id         = "subAnnotationsList"
+              caching    = "false"
+              class      = "noscrollbar"
+              scrollbar  = "sbShared 20 2 2"
+              focussable = "true"
+              height     = "150"
+              model      = "subAnnotationsModel"
+              loading-message = "No sub annotations"
+              empty-message = "No sub annotations">
+                <a:actions />
+                <a:each match="[subannotation]" sort="[@ln]" data-type="number" order="ascending">
+                    <a:column caption="Risk"   value="[@risk]"    width="30"/>
+                    <a:column caption="Description" value="[@description]" width="100%"/>
                     <a:column caption="Ln"     value="[@ln]"      width="30" />
                     <a:column caption="Col"    value="[@col]"     width="30" />
                 </a:each>
