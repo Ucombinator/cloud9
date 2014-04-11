@@ -1,28 +1,27 @@
 Example:
 {
-    "annotations": [
-        {
-            "file_name": "com/quickdroid/AppQuery.java",
-            "class_name": "com.quickdroid.AppQuery",
-            "method": "processCall",
-            "start_line": 32,
-            "start_col": 0,
-            "end_line": 35,
-            "end_col": 80,
-            "short_description": "network",
-            "risk_score": 35,
-            "long_description": "",
-            "sub_annotations": [
-                {
-                    "start_line": 33
-                    "end_line": 33
-                    "start_col": 0
-                    "end_col": 10
-                    "description": ""
-                }
-            ]
-        }
-    ]
+  "annotations": [{
+    "risk_score": 5,
+    "method": "onReceive",
+    "file_name": "MainActivity.java",
+    "class_name": "com.example.MainActivity",
+    "short_description": "",
+    "long_description": "",
+    "start_line": 119,
+    "end_line": 3,  //optional
+    "start_col": 0, //optional
+    "end_col" : 3,  //optional
+    "sub_annotations": [{
+      "start_line": 119,
+      "end_line": 119, //optional
+      "start_col": 0,  //optional
+      "end_col": 8,    //optional
+      "method": "d",
+      "class_name": "android.util.Log", //remove?
+      "risk_score": 5,
+      "description": "filesystem"
+    }]
+  }]
 }
 
 JSON Schema:
@@ -68,13 +67,13 @@ JSON Schema:
                         "type": "string",
                         "description": "shown on line above in source"
                     },
-                    "highlights": {
+                    "sub_annotations": {
                         "type": "array",
                         "items": {
                             "type": "object",
                             "properties": {
                                 "start_line": {
-                                    "type": "integer",
+                                    "type": "integer"
                                 },
                                 "end_line": {
                                     "type": "integer"
@@ -86,10 +85,19 @@ JSON Schema:
                                     "type": "integer"
                                 },
                                 "description": {
-                                    "type": "string",
+                                    "type": "string"
+                                },
+                                "method": {
+                                    "type": "string"
+                                },
+                                "risk_score" : {
+                                    "type": "integer"
+                                },
+                                "class_name" : {
+                                    "type": "string" 
                                 }
                             },
-                            "required": ["start_line", "end_line", "start_col", "end_col"]
+                            "required": ["start_line", "method", "description", "risk_score" ]
                         }
                     }
                 },
