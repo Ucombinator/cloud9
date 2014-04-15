@@ -26,7 +26,7 @@
                 <a:each match="[annotation]" sort="[@risk]" data-type="number" order="descending">
                     <a:column caption="Risk"   value="[@risk]"    width="30"/>
                     <a:column caption="Class"  value="[@clazz]"   width="50%"/>
-                    <a:column caption="MethodORValue" value="[@method]"  width="50%"/>
+                    <a:column caption="Method" value="[@method]"  width="50%"/>
                     <a:column caption="Ln"     value="[@ln]"      width="30" />
                     <a:column caption="Col"    value="[@col]"     width="30" />
                 </a:each>
@@ -46,7 +46,7 @@
                     <a:column caption="Risk"        value="[@risk]"    width="30"/>
                     <a:column caption="Description" value="[@description]" width="20%"/>
                     <a:column caption="Pkg"         value="[@clazz]"   width="40%"/>
-                    <a:column caption="Method"      value="[@method]"  width="40%"/>
+                    <a:column caption="MethodOrValue"      value="[@method]"  width="40%"/>
                     <a:column caption="Ln"          value="[@ln]"      width="30" />
                     <a:column caption="Col"         value="[@col]"     width="30" />
                 </a:each>
