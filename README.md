@@ -79,7 +79,7 @@ Requirements:
 
 Install:
 
-    git clone https://github.com/ajaxorg/cloud9.git
+    git clone https://github.com/ajaxorg/cloud9.gitc
     cd cloud9
     npm install
 
