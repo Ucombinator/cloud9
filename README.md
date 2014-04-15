@@ -1,8 +1,7 @@
 
-
 # Cloud9 Analyst
 
-Follow the cloud9 specific build instructions (further down below) for your os, then run:
+Follow the [cloud9 specific build instructions](https://github.com/ajaxorg/cloud9) for your os, then run:
 
     make start
 
@@ -12,7 +11,7 @@ There is a sample folder structure in this repository (which make start uses as 
 
     cloud9-analyst/
         ucombinator/
-            apps/ <- 'make start' sets this as the cloud9 workspace directory
+            apps/ <- 'make start' sets this as the cloud9 workspace directory (and you should too)
               <App1Name>/
                   project/
                       src/
@@ -25,13 +24,14 @@ There is a sample folder structure in this repository (which make start uses as 
                       MyRiskReport.json
                       ...
 
-You can also specify a custom workspace dir like this (make sure to have run the install steps below for your os first):
+You can also specify a custom workspace dir like this (make sure to have run the [install steps](https://github.com/ajaxorg/cloud9) below for your os first):
 
     cd cloud9-analyst
     ./bin/cloud9.sh -w <path-to-workspace>
 
 Note that the custom workspace should follow the same convention as the apps/ directory in the sample folder structure.
 If you use a custom workspace, then make start is unncessary.
+<<<<<<< HEAD
 
 **Issues on c9.io** If you have questions regarding the hosted service at [c9.io](http://c9.io)
 including issues with accounts or payments,
@@ -189,3 +189,5 @@ Address: Cloud9 IDE
   Keizersgracht 241
   1016 EA, Amsterdam
   the Netherlands
+=======
+>>>>>>> 2853be830c489b9baaf3bf142f3792590bedfa59
