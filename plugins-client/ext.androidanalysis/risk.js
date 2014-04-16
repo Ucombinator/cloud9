@@ -21,11 +21,14 @@ var editors = require("ext/editors/editors");
 var fs = require("ext/filesystem/filesystem");
 var Range = require("ace/range").Range;
 var Selection = require("ace/selection").Selection;
+var Document = require("ace/document").Document;
 var menus = require("ext/menus/menus");
 var dock = require("ext/dockpanel/dockpanel");
 var commands = require("ext/commands/commands");
 var markup = require("text!ext/androidanalysis/RiskReportDockView.xml");
 var css = require("text!ext/androidanalysis/style/analysis.css");
+var prettyPrint = require("./google-code-prettify/prettify_module").prettyPrint;
+var prettifyCss = require("text!./google-code-prettify/sonofobsidian.css");
 
 module.exports = ext.register("ext/androidanalysis/risk", {
     name     : "Android Risk Analysis",
@@ -265,8 +268,8 @@ module.exports = ext.register("ext/androidanalysis/risk", {
             // adding post processed properties in order to
             // make the grid easier to read and the file lookup easier
             var javaPkg = an.class_name.split('.');
-            var relativePath = javaPkg.join('/');
             an.unqualified_class_name = javaPkg.pop();
+            var relativePath = javaPkg.join('/');
             an.annotation_index = i;
             an.cloud9_path = workspacePath + relativePath + '/' + an.file_name;
         }
@@ -304,19 +307,56 @@ module.exports = ext.register("ext/androidanalysis/risk", {
     },
     renderReport: function () {
       //TODO: render static html output and open in new browser window
+      var _self = this;
       var fn = '/workspace/risk_report_preview.html';
+      var contents = '<html><head><style>'+prettifyCss+'</style></head><body>' 
+
+      function renderNextAnnotation(index) {
+         if(index == _self.riskReport.annotations.length) {
+            contents += '</body></html>';
+            fs.saveFile(fn, contents, 
+                function(value, state, extra) {
+                    if (state !== apf.SUCCESS) {
+                        return util.alert("Could not render document",
+                            "An error occurred while saving the generated document",
+                            "The server responded with status " + extra.status + ".");
+                    }
+                     
+                    window.open(fn, "_blank");
+                });
+         } else {
+              var anot = _self.riskReport.annotations[index];
+              _self.getDocument(anot.cloud9_path, function (doc, err) {
+                  contents += '<p><b>' + 
+                    (anot.class_name || '') + ' ' + 
+                    (anot.method || '') + 
+                    (anot.long_description || '') + 
+                    (anot.risk_score ? ' (risk: ' + anot.risk_score + ')' : '') + '</b></p>' +
+                    '<pre class="prettyprint">' + 
+                    prettyPrint(
+                      doc.getTextRange(new Range(Math.max(0, anot.start_line-2), 0, anot.start_line+1, 70)), 
+                      'java', Math.max(0, anot.start_line-2)
+                    )  + '</pre>';
+                  for(var i =0; i < anot.sub_annotations.length; i++) {
+                      var san = anot.sub_annotations[i];
+                      contents += '<p><b>' + (san.description || 'no description') + ':</b> ' +
+                         (san.unqualified_class_name || '') + 
+                         (san.method? '.' : '') + 
+                         (san.method || '') + 
+                         (san.risk_score ? ' (risk: ' + san.risk_score + ')' : '') + '</b></p>';
+                      var textRange = doc.getTextRange(
+                        new Range(Math.max(0, san.start_line-2), 0, san.start_line+1, 70)
+                      );
+                      contents += '<pre class="prettyprint">' + 
+                        prettyPrint(textRange, 'java', Math.max(0, san.start_line-2))  + '</pre>';
+                  }
+                  renderNextAnnotation(index+1)
+              })
+            
+         }
       
-      fs.saveFile(fn, JSON.stringify(this.riskReport, null, 2), 
-        function(value, state, extra) {
-            if (state !== apf.SUCCESS) {
-                return util.alert("Could not render document",
-                    "An error occurred while saving the generated document",
-                    "The server responded with status " + extra.status + ".");
-            }
-             
-            window.open(fn, "_blank");
-        });
-      
+      }    
+      renderNextAnnotation(0);
     },
     openRiskReport: function(path) {
         var _self = this;
@@ -330,6 +370,19 @@ module.exports = ext.register("ext/androidanalysis/risk", {
                   'verify the file is in the correct format.');
             _self.riskReport = _self.transformRiskReport(json, path);
             _self.loadRiskReportModel(_self.riskReport);
+        });
+    },
+    getDocument: function(path, callback) {
+        var _self = this;
+        var baseUrl = apf.host;
+        var http = new apf.http();
+        http.get(baseUrl + path, { 
+            callback: function(data, state, extra){
+                if (state != apf.SUCCESS) {
+                    callback(null, extra.message);
+                }
+                callback(new Document(data));            
+            }
         });
     },
     toggleShowSinks:  function () {
