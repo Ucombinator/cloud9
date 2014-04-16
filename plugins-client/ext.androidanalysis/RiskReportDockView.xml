@@ -140,10 +140,17 @@
                 <a:each match="[subannotation]" sort="[@start_line]" data-type="number" order="ascending">
                     <a:column caption="Risk"        value="[@risk_score]"  width="30" />
                     <a:column caption="Description" value="[@description]" width="20%"/>
+<<<<<<< HEAD
                     <a:column caption="Class"       value="[@unqualified_class_name]"  width="40%"/>
                     <a:column caption="Method"      value="[@method]"      width="40%"/>
                     <a:column caption="Ln"          value="[@start_line]"  width="30" />
                     <a:column caption="Col"         value="[@start_col]"   width="30" />
+=======
+                    <a:column caption="Pkg"         value="[@clazz]"   width="40%"/>
+                    <a:column caption="MethodOrValue"      value="[@method]"  width="40%"/>
+                    <a:column caption="Ln"          value="[@ln]"      width="30" />
+                    <a:column caption="Col"         value="[@col]"     width="30" />
+>>>>>>> 625b13e516f3de5eb0b2f6cadcebb9cc2ebd969e
                 </a:each>
             </a:datagrid>
            </a:vsplitbox>
