@@ -1,10 +1,105 @@
 <a:application xmlns:a="http://ajax.org/2005/aml">
     <a:model id="annotationsModel"/>
     <a:model id="subAnnotationsModel"/>
+    <a:window
+      id        = "saveRiskReportDialog"
+      title     = "Save Risk Report"
+      center    = "true"
+      modal     = "true"
+      buttons   = "close"
+      skin      = "bk-window"
+      kbclose   = "true"
+      class     = "relative"
+      width     = "300">
+        <a:vbox>
+            <a:hbox padding="5" edge="10">
+                File Path
+            </a:hbox>
+            <a:hbox padding="5" edge="10">
+                <a:textbox id="riskReportFilename"/>
+            </a:hbox>
+            <a:hbox pack="end" padding="5" edge="6 10 10">
+                <a:button 
+                  caption = "Save" 
+                  skin    = "btn-default-css3"
+                  onclick = "require('ext/androidanalysis/risk').onSaveRiskReport();"
+                 />
+                <a:button 
+                  caption = "Cancel" 
+                  skin    = "btn-default-css3"
+                  onclick = "saveRiskReportDialog.hide();"
+                 />
+            </a:hbox>
+        </a:vbox>
+    </a:window>
+    <a:window
+      id        = "editAnnotationView"
+      title     = "Edit Annotation Details"
+      center    = "true"
+      modal     = "true"
+      buttons   = "close"
+      skin      = "bk-window"
+      kbclose   = "true"
+      class     = "relative"
+      width     = "300">
+        <a:vbox>
+            <a:hbox padding="5" edge="10">
+                Description
+            </a:hbox>
+            <a:hbox padding="5" edge="10">
+                <a:textbox id="anotRiskDescription"/>
+            </a:hbox>
+            <a:hbox pack="end" padding="5" edge="6 10 10">
+                <a:button 
+                  caption = "Add" 
+                  skin    = "btn-default-css3"
+                  onclick = "require('ext/androidanalysis/risk').onEditAnotDone();"
+                 />
+                <a:button 
+                  caption = "Cancel" 
+                  skin    = "btn-default-css3"
+                  onclick = "require('ext/androidanalysis/risk').onEditAnotCancel();"
+                 />
+            </a:hbox>
+        </a:vbox>
+    </a:window>
+    <a:window
+      id        = "editSubAnnotationView"
+      title     = "Edit Subannotation Details"
+      center    = "true"
+      modal     = "true"
+      buttons   = "close"
+      skin      = "bk-window"
+      kbclose   = "true"
+      class     = "relative"
+      width     = "300">
+        <a:vbox>
+            <a:hbox padding="5" edge="10">
+                Description
+            </a:hbox>
+            <a:hbox padding="5" edge="10">
+                <a:textbox id="sanRiskDescription"/>
+            </a:hbox>
+            <a:hbox pack="end" padding="5" edge="6 10 10">
+                <a:button 
+                  caption = "Add" 
+                  skin    = "btn-default-css3"
+                  onclick = "require('ext/androidanalysis/risk').onEditSubAnotDone();"
+                 />
+                <a:button 
+                  caption = "Cancel" 
+                  skin    = "btn-default-css3"
+                  onclick = "require('ext/androidanalysis/risk').onEditSubAnotCancel();"
+                 />
+            </a:hbox>
+        </a:vbox>
+    </a:window>
     <a:tab id="riskReportViewTab" visible="false" activepage="0">
         <a:page id="riskReportView" caption="Risk Report">
             <a:toolbar>
               <a:bar>
+               <a:button caption="render report" onclick="require('ext/androidanalysis/risk').renderReport();"/>
+               <a:button caption="save" onclick="saveRiskReportDialog.show()"/>
                <a:button caption="close" onclick="require('ext/androidanalysis/risk').close();"/>
              </a:bar>
            </a:toolbar>
@@ -23,12 +118,12 @@
               loading-message = "Drag and drop a risk report here"
               empty-message = "Drag and drop a risk report here">
                 <a:actions />
-                <a:each match="[annotation]" sort="[@risk]" data-type="number" order="descending">
-                    <a:column caption="Risk"   value="[@risk]"    width="30"/>
-                    <a:column caption="Class"  value="[@clazz]"   width="50%"/>
-                    <a:column caption="Method" value="[@method]"  width="50%"/>
-                    <a:column caption="Ln"     value="[@ln]"      width="30" />
-                    <a:column caption="Col"    value="[@col]"     width="30" />
+                <a:each match="[annotation]" sort="[@risk_score]" data-type="number" order="descending">
+                    <a:column caption="Risk"   value="[@risk_score]"  width="30" />
+                    <a:column caption="Class"  value="[@unqualified_class_name]"  width="50%"/>
+                    <a:column caption="Method" value="[@method]"      width="50%"/>
+                    <a:column caption="Ln"     value="[@start_line]"  width="30" />
+                    <a:column caption="Col"    value="[@start_col]"   width="30" />
                 </a:each>
             </a:datagrid>
            <a:datagrid
@@ -42,13 +137,13 @@
               loading-message = "No sub annotations"
               empty-message = "No sub annotations">
                 <a:actions />
-                <a:each match="[subannotation]" sort="[@ln]" data-type="number" order="ascending">
-                    <a:column caption="Risk"        value="[@risk]"    width="30"/>
+                <a:each match="[subannotation]" sort="[@start_line]" data-type="number" order="ascending">
+                    <a:column caption="Risk"        value="[@risk_score]"  width="30" />
                     <a:column caption="Description" value="[@description]" width="20%"/>
-                    <a:column caption="Pkg"         value="[@clazz]"   width="40%"/>
-                    <a:column caption="Method"      value="[@method]"  width="40%"/>
-                    <a:column caption="Ln"          value="[@ln]"      width="30" />
-                    <a:column caption="Col"         value="[@col]"     width="30" />
+                    <a:column caption="Class"       value="[@unqualified_class_name]"  width="40%"/>
+                    <a:column caption="Method"      value="[@method]"      width="40%"/>
+                    <a:column caption="Ln"          value="[@start_line]"  width="30" />
+                    <a:column caption="Col"         value="[@start_col]"   width="30" />
                 </a:each>
             </a:datagrid>
            </a:vsplitbox>
