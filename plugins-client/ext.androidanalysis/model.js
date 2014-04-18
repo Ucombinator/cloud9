@@ -64,21 +64,30 @@ define(function(require, exports, module) {
     }
     
     SubAnnotation.prototype.getRangeInDocument = function (doc) {
+        //TODO: sub annotations need to be more specific about what they are 
+        //      (callsite, method def, variable, literal, code section, etc...)
         var range;
+        
+        // if the exact highlight position is specified, just highlight the range
         if(this.start_col && this.end_line && this.end_col) {
             range = new Range(this.start_line-1, this.start_col-1, this.end_line-1, this.end_col-1);
-        } else if (this.method) {
+        } 
+        // if a method is specified, then highlight as a call site
+        else if (this.method) {
             var sanStartLine = this.start_line - 1;
             var sanMethod = (this.method == '<init>') ? 
                 this.class_name.split(/[$.]/).pop() :
                 this.method;
+            // assuming it is a call site... but what if the sub annotation is a method def?
             var pattern    = '(.\\s*)?'+sanMethod+'\\s*\\(';
             var firstMatch = new RegExp(pattern, 'm').exec(doc.getLine(sanStartLine));
             if(firstMatch) {
                 range = new Range(sanStartLine, firstMatch.index, 
                                   sanStartLine, firstMatch.index + firstMatch[0].length)
             }
-        } else if(this.value) {
+        } 
+        // if a literal value is specified, then find the literal value in the text
+        else if(this.value) {
             //TODO do a regex on the value
             console.warn('subannotation value property highlight unimplemented.');
         }
@@ -167,7 +176,7 @@ define(function(require, exports, module) {
             while((startCol = doc.getLine(startLine).indexOf(searchText)) == -1) { 
                 if(--startLine < 0) break; 
             }
-            range = new Range(startLine, startCol, startLine, (startCol + searchText.length));
+            range = new Range(startLine, startCol, startLine, (startCol + Math.max(0,searchText.length-1)));
         } else if (this.value) {
             //TODO do a regex on the value
             console.warn('annotation value property highlight unimplemented.');
@@ -202,7 +211,7 @@ define(function(require, exports, module) {
             
             this.app_name  = _path.pop();
             
-            //convention
+            //expected folder structure convention for source
             this.src_path = _path.join('/') + '/' + this.app_name +  '/project/src/'; 
             
             for(var i = 0; i < annotations.length; i++) {
@@ -243,9 +252,8 @@ define(function(require, exports, module) {
     }
 
     RiskReport.prototype.toPlainText = function (callback) {
-        //TODO: render static html output and open in new browser window
         var _self = this,
-            contents = 'Risk Report: ' + (this.app_name ? this.app_name: '') + '\n', 
+            contents = 'Risk Report: ' + (this.app_name ? this.app_name: '<Application Name>') + '\n', 
             anotPrefix  = '\n***************************************************************************************\n',
             anotTrailer = '\n***************************************************************************************',
             sanPrefix   = '\n',
@@ -285,6 +293,8 @@ define(function(require, exports, module) {
                     var anotStartLn  = Math.max(0,      anotRange.start.row-linesBefore);
                     var anotEndLn    = Math.min(lastLn, anotRange.end.row+linesAfter);
                     var anotCodeLns  = doc.getLines(anotStartLn, anotEndLn);
+                    
+                    // remove prefixed whitespace as much as possible with ruining indentation
                     var trim_cnt = getMinColumnsToTrim(anotCodeLns);
 
                     // prepend line nums
@@ -302,6 +312,7 @@ define(function(require, exports, module) {
                         var sanRange    = new Range(sanStartLn, startCol, sanEndLn, endCol)
                         var sanCodeLns = doc.getLines(sanStartLn, sanEndLn);
                         
+                        // remove prefixed whitespace as much as possible with ruining indentation
                         trim_cnt = getMinColumnsToTrim(sanCodeLns);
                         
                         // prepend line nums
@@ -320,7 +331,6 @@ define(function(require, exports, module) {
     }
  
     RiskReport.prototype.toHtml = function (callback) {
-        //TODO: render static html output and open in new browser window
         var _self = this,
             contents = '<html><head><style>'+prettifyCss+'</style><h1>Risk Report</h1></head><body>', 
             anotPrefix  = '<p><b>',
