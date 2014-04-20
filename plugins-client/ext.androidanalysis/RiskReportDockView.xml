@@ -94,7 +94,7 @@
             </a:hbox>
         </a:vbox>
     </a:window>
-    <a:tab id="riskReportViewTab" visible="false" activepage="0">
+    <a:tab id="riskReportViewTab" visible="false" activepage="0" drag="false">
         <a:page id="riskReportView" caption="Risk Report">
             <a:toolbar>
               <a:bar>

@@ -1,0 +1,14 @@
+{
+    "name": "ext.callgraph",
+    "version": "0.0.1",
+    "main": "callgraph.js",
+    "private": true,
+    "plugin": {
+        "provides": [
+            "ext.callgraph"
+        ],
+        "consumes": [
+            "client-plugins"
+        ]
+    }
+}

@@ -254,12 +254,12 @@ define(function(require, exports, module) {
     RiskReport.prototype.toPlainText = function (callback) {
         var _self = this,
             contents = 'Risk Report: ' + (this.app_name ? this.app_name: '<Application Name>') + '\n', 
-            anotPrefix  = '\n***************************************************************************************\n',
-            anotTrailer = '\n***************************************************************************************',
+            anotPrefix  = '\n\n',
+            anotTrailer = '\n_______________________________________________________________________________________',
             sanPrefix   = '\n',
             sanTrailer  = '',
-            codePrefix  = '\n_______________________________________________________________________________________\n',
-            codeTrailer = '\n_______________________________________________________________________________________\n',
+            codePrefix  = '\n',
+            codeTrailer = '\n',
             linesBefore = 2,
             linesAfter  = 1,
             startCol    = 0,
@@ -373,7 +373,7 @@ define(function(require, exports, module) {
         }    
         renderNextAnnotation(0);
     }
-    
+
     exports.Annotation    = Annotation;
     exports.SubAnnotation = SubAnnotation;
     exports.RiskReport    = RiskReport;

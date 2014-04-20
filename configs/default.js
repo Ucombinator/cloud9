@@ -150,7 +150,8 @@ var config = [
             "ext/revisions/revisions",
             //"ext/language/liveinspect",
             "ext/splitview/splitview",
-            "ext/androidanalysis/risk"
+            "ext/androidanalysis/risk",
+            "ext/callgraph/callgraph"
         ]
     }, {
         packagePath: "vfs-architect/local",
