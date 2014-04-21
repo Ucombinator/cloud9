@@ -40,6 +40,8 @@ module.exports = ext.register("ext/androidanalysis/risk", {
     deps     : [],
     type     : ext.GENERAL,
     markup   : markup,
+    pageTitle: "Risk Report",
+    pageID   : "pgRiskReportBelow",
     nodes : [],
     init : function () {
         this.riskReportView = riskReportView;
@@ -102,6 +104,11 @@ module.exports = ext.register("ext/androidanalysis/risk", {
             },
             exec: function() {
                 console.log(dock);
+                
+                if (_self.$panel == null) {
+                  _self.$panel = tabConsole.add(_self.pageTitle, _self.pageID);
+                }
+                
                 _self.riskReport = new RiskReport();
                 _self.loadRiskReportModel(_self.riskReport);   
             }
@@ -317,6 +324,87 @@ module.exports = ext.register("ext/androidanalysis/risk", {
         for (var id in markers) 
             if (markers[id].clazz.indexOf('_annotation') != -1) 
                 session.removeMarker(id); 
+    },
+    
+    makeEditableRiskReportPanel : function() {
+        var _self = this;
+        // create editor if it does not exist
+        if (this.$panel == null) {
+            this.$panel = tabConsole.add(this.pageTitle, this.pageID);
+            this.$panel.setAttribute("closebtn", true);
+
+            tabConsole.set(this.pageID);
+
+            this.callGraphConsole = this.$panel.appendChild(new apf.codeeditor({
+                syntax            : "c9search",
+                "class"           : "nocorner aceSearchConsole aceSearchResults",
+                theme             : "ace/theme/monokai",
+                overwrite         : "[{require('core/settings').model}::editors/code/@overwrite]",
+                folding           : "true",
+                style             : "position:absolute;left:0;right:0;top:0;bottom:0",
+                behaviors         : "[{require('core/settings').model}::editors/code/@behaviors]",
+                selectstyle       : "false",
+                activeline        : "[{require('core/settings').model}::editors/code/@activeline]",
+                gutterline        : "[{require('core/settings').model}::editors/code/@gutterline]",
+                showinvisibles    : "false",
+                showprintmargin   : "false",
+                softtabs          : "[{require('core/settings').model}::editors/code/@softtabs]",
+                tabsize           : "[{require('core/settings').model}::editors/code/@tabsize]",
+                scrollspeed       : "[{require('core/settings').model}::editors/code/@scrollspeed]",
+                newlinemode       : "[{require('core/settings').model}::editors/code/@newlinemode]",
+                animatedscroll    : "[{require('core/settings').model}::editors/code/@animatedscroll]",
+                fontsize          : "[{require('core/settings').model}::editors/code/@fontsize]",
+                gutter            : "[{require('core/settings').model}::editors/code/@gutter]",
+                highlightselectedword : "[{require('core/settings').model}::editors/code/@highlightselectedword]",
+                autohidehorscrollbar  : "[{require('core/settings').model}::editors/code/@autohidehorscrollbar]",
+                fadefoldwidgets   : "false",
+                wrapmodeViewport  : "true"
+            }));
+            
+            _self.callGraphConsole.$editor.session.setWrapLimitRange(null, null);
+
+            this.$panel.addEventListener("afterclose", function() {
+                this.removeNode();
+                _self.$panel = null;
+                _self.consoleacedoc = null;
+                return false;
+            });
+
+            _self.callGraphConsole.addEventListener("keydown", function(e) {
+                if (e.keyCode == 13) { // ENTER
+                    if (e.altKey === false) {
+                        _self.launchFileFromCallerList(_self.callGraphConsole.$editor);
+                        _self.returnFocus = false;
+                    }
+                    else {
+                        _self.callGraphConsole.$editor.insert("\n");
+                    }
+                    return false;
+                }
+            });
+
+            _self.callGraphConsole.addEventListener("keyup", function(e) {
+                if (e.keyCode >= 37 && e.keyCode <= 40) { // KEYUP or KEYDOWN
+                    if (apf.isTrue(settings.model.queryValue("editors/code/filesearch/@consolelaunch"))) {
+                        _self.launchFileFromCallerList(_self.callGraphConsole.$editor);
+                        //_self.returnFocus = true;
+                        return false;
+                    }
+                }
+            });
+               
+            _self.callGraphConsole.$editor.renderer.scroller.addEventListener("dblclick", function() {
+                _self.launchFileFromCallerList(_self.callGraphConsole.$editor);
+            });
+            
+        }
+        else {
+            if (apf.isTrue(settings.model.queryValue("auto/console/@clearonrun")))
+                this.consoleacedoc.removeLines(0, this.consoleacedoc.getLength());
+
+            tabConsole.appendChild(this.$panel);
+            tabConsole.set(this.pageID);
+        }
     },
     jumpToAndHighlight: function (sub) {
       var _self = this;
