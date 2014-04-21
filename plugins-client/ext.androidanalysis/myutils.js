@@ -51,22 +51,29 @@ define(function(require, exports, module) {
         
     /**
     *  show file: (modified from ext.debugger/sources)
-    *    options {path, row, column}
+    *    options {path, row, column, text, animate}
     */
-    function jumpToFile(options) {
-        var row = options.row + 1;
+    function jumpToFile(options, callback) {
+        var row = options.row;
         var column = options.column;
         var text = options.text || "" ;
         var path = options.path;
+        var animate = options.animate || true;
         var fileNode = this.getFileNode(path);
         
+        function onJumpDone(e) {
+           ide.removeEventListener('jumpedToFile', onJumpDone);
+           callback(e);
+        }
+        
         if (fileNode) {
+            ide.addEventListener('jumpedToFile', onJumpDone);
             editors.jump({
                 node    : fileNode,
                 row     : row,
                 column  : column,
                 text    : text,
-                animate : true
+                animate : animate
             });
         }
     }

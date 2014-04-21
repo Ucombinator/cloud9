@@ -22,21 +22,24 @@ var menus = require("ext/menus/menus");
 var commands = require("ext/commands/commands");
 var tooltip = require("ext/tooltip/tooltip");
 var CallGraph = require("./model").CallGraph;
+var myutils = require("../androidanalysis/myutils")
+
 
 // Ace dependencies
 var EditSession = require("ace/edit_session").EditSession;
 var Document = require("ace/document").Document;
+var Range = require("ace/range").Range;
 
 module.exports = ext.register("ext/callgraph/callgraph", {
-    name     : "Display Method References",
+    name     : "Analysis Results",
     dev      : "Ucombinator.org",
     type     : ext.GENERAL,
     alone    : true,
     offline  : false,
     autodisable  : ext.ONLINE | ext.LOCAL,
-    pageTitle: "Callers",
+    pageTitle: "Log",
     pageID   : "pgCallGraph",
-
+    resultsConsolePath: ide.davPrefix + "/analysis.results",
     nodes    : [],
 
     // lazily load the call graphs for apps when files are clicked
@@ -69,9 +72,10 @@ module.exports = ext.register("ext/callgraph/callgraph", {
                 var selectedText = selection.doc.getTextRange(range);
                 var line = range.start.row + 1;
                 var path = editor.session.c9doc.getNode().getAttribute("path");
+                selection.clearSelection();
                 
                 _self.onClickCodeEditor(path, line, selectedText);            
-            },50)
+            },80) // otherwise the selection is affected by a slow mouse release
         });
         
         tabConsole.addEventListener("afterswitch", function(e){
@@ -106,21 +110,24 @@ module.exports = ext.register("ext/callgraph/callgraph", {
             while(!(method = _self.callGraphs[appName][srcPath+':'+line+':'+identifier])) { 
                 ++line; 
                 if(line > (originalLine + MAX_LINE_ERROR)) {
-                     console.error('the method def line number is off by more than MAX_LINE_ERROR: ' + MAX_LINE_ERROR);
+                     console.error('could not find method def ' + srcPath+':'+originalLine + '-' + line+':'+identifier);
+                     _self.displayMessage('The method ' + identifier + ' in ' + srcPath + ' is not in the call graph.');
+                     _self.setHighlight(_self.callGraphConsole.$editor.getSession(), identifier);
                      break;
                 }
             }
             if(!method) return;
             
             if(method.referenced_at) {
-               _self.printCallers(identifier, method.referenced_at);
+               _self.printCallers(appName, identifier, method.referenced_at);
             } else if(method.defined_at) {
                for(var defPath in method.defined_at) {
                   var row = method.defined_at[defPath][0];
-                  if(row == null)
-                    util.alert("could not look up method definition", identifier)
-                  else
-                    _self.jumpToDefinition(basePath + defPath, row, identifier);  
+                  if(row == null) {
+                    _self.displayMessage("No source info for " + identifier + ".");
+                    _self.setHighlight(_self.callGraphConsole.$editor.getSession(), identifier);
+                  } else
+                    _self.jumpToDefinition(basePath + defPath, row-1, identifier);  
                }
                
             }
@@ -142,20 +149,63 @@ module.exports = ext.register("ext/callgraph/callgraph", {
     },
     // when a method is clicked, open the source of the method def
     jumpToDefinition: function (path, row, identifier) {
-        editors.gotoDocument({
+        var _self = this;
+        var prevEditor  = editors.currentEditor.amlEditor.$editor;
+        var selection   = prevEditor.getSelection();
+        var range       = selection.getLineRange();
+        var prevPath    = prevEditor.session.c9doc.getNode().getAttribute("path");
+        var prevRow     = range.start.row; 
+        var prevRowText = selection.doc.getTextRange(range).replace('\n', '');             
+        
+        // TODO get the current focused document & row
+        myutils.jumpToFile({
             path: path,
             row: row,
             column: 0,
-            endColumn: 70 //TODO highlight just the identifier
+            text: identifier
+        }, function (e) {
+            // TODO the line is off due to method def line being first instruction line
+            //      need to correct when loading call graph to avoid this...
+            var newEditor    = editors.currentEditor.amlEditor.$editor;
+            var newSelection = newEditor.getSelection();
+            var newRange     = newSelection.getLineRange();
+            var newPath      = newEditor.session.c9doc.getNode().getAttribute("path");
+            var newRow       = newRange.start.row; 
+            var newRowText = newSelection.doc.getTextRange(newRange).replace('\n', '');  
+
+            _self.displayMessage([
+                'jumped to definition of ' + identifier + ' at ',
+                path.replace(ide.davPrefix, '') + ':',
+                '    ' + (newRow+1) + ': ' + newRowText,
+                'from',
+                prevPath.replace(ide.davPrefix, '') + ':',
+                '    ' + (prevRow+1) + ': ' + prevRowText
+            ]);
+
+            _self.setHighlight(_self.callGraphConsole.$editor.getSession(), identifier);
         });
     },
-    printCallers: function(method, callers) {
+    displayMessage: function (msg) {
         var _self = this;
+        
+        if(msg) {
+            _self.initResultsPanel();
 
+            var doc = this.consoleacedoc;
+            var editor = this.callGraphConsole.$editor;
+            
+            var currLength = doc.getLength() - 2; // the distance to the last message
+                editor.scrollToLine(currLength, false, true);
+            _self.appendLines(doc, '\n\n');
+            _self.appendLines(doc, msg);
+        }
+    },
+    initResultsPanel: function () {
+        var _self = this;
         // prepare new Ace document to handle call graph results
         var node = apf.n("<file/>")
             .attr("name", "Search Results")
-            .attr("path", this.searchFilePath)
+            .attr("path", this.resultsConsolePath)
             .attr("customtype", util.getContentType(this.searchContentType))
             .attr("tooltip", "Search Results")
             .attr("newfile", "0")
@@ -165,20 +215,14 @@ module.exports = ext.register("ext/callgraph/callgraph", {
 
         var doc = ide.createDocument(node);
 
-        // arrange beginning message
-        var messageHeader = this.messageHeader(method);
-
         // show the console; require here is necessary for c9local, please do not change
         require("ext/console/console").show();
 
         this.makeCallGraphPanel();
 
         // the search results already exist
-        if (_self.consoleacedoc) {
-            _self.appendLines(_self.consoleacedoc, messageHeader);
-        }
-        else {
-            _self.callGraphConsole.$editor.setSession(new EditSession(new Document(messageHeader), "ace/mode/c9search"));
+        if (!_self.consoleacedoc) {
+            _self.callGraphConsole.$editor.setSession(new EditSession(new Document(''), "ace/mode/c9search"));
             _self.consoleacedoc = _self.callGraphConsole.$editor.session.doc; // store a reference to the doc
 
             _self.consoleacedoc.ace = _self.callGraphConsole.$editor;
@@ -189,27 +233,26 @@ module.exports = ext.register("ext/callgraph/callgraph", {
             _self.callGraphConsole.$editor.commands.commmandKeyBinding = commands.commmandKeyBinding;
             _self.callGraphConsole.$editor.getSession().setUndoManager(new apf.actiontracker());
         }
+    },
+    printCallers: function(appName, method, callers) {
+        var _self = this;
 
+        var lines = []
+        var file_cnt = 0;
+        var ref_cnt = 0;
+        for(var pkgPath in callers) {
+            lines.push('/' + appName + '/project/src/' + pkgPath + ':')
+            for(var i = 0; i < callers[pkgPath].length; i++) {
+              lines.push('    ' + callers[pkgPath][i] + ': ' + method);
+              ++ref_cnt;
+            }
+            ++file_cnt;
+        }
+        lines.unshift(_self.messageHeader(method, file_cnt, ref_cnt));
+        
+        _self.displayMessage(lines.join('\n'));
         _self.setHighlight(_self.callGraphConsole.$editor.getSession(), method);
-
-        var doc = this.consoleacedoc;
-        var editor = this.callGraphConsole.$editor;
         
-        var currLength = doc.getLength() - 2; // the distance to the last message
-            editor.scrollToLine(currLength, false, true);
-
-        
-        this.appendLines(doc, /*TODO: format the method correctly */JSON.stringify(callers, null, 2));
-
-        var footer = [""];
-        var message = { count: -1, filecount: -1 };
-        var footerData = { count: message.count, filecount: message.filecount };
-        
-        footer.push(this.messageFooter(footerData));
-        footer.push("", "", "");
-        
-        doc.insertLines(doc.getLength(), footer);
-
         return true;
 
     },
@@ -242,11 +285,13 @@ module.exports = ext.register("ext/callgraph/callgraph", {
         var row = parseInt(clickedLine[0], 10);
         var range = editor.getSelectionRange();
         var offset = clickedLine[0].length + 2;
-        editors.gotoDocument({
-            path: path,
+        myutils.jumpToFile({
+            path: ide.davPrefix + '/' + path,
             row: row,
-            column: range.start.column - offset,
-            endColumn: range.end.column - offset
+            column: 0,
+            text: clickedLine[1]
+        }, function (e) {
+            
         });
     },
 
@@ -264,17 +309,13 @@ module.exports = ext.register("ext/callgraph/callgraph", {
         }
     },
 
-    messageHeader : function(query) {
-        return "Callers of method " + query +  "\n\n";
-    },
+    messageHeader: function(query, file_cnt, ref_cnt) {
+        var message = "Found " + ref_cnt;
 
-    messageFooter : function(countJSON) {
-        var message = "Found " + countJSON.count;
-
-        message += (countJSON.count > 1 || countJSON.count == 0) ? " callers" : " caller";
-        message += " in " + countJSON.filecount;
-        message += (countJSON.filecount > 1 || countJSON.filecount == 0) ? " files" : " file";
-
+        message += (ref_cnt > 1 || ref_cnt == 0) ? " references" : " reference";
+        message += " to " + query + " in " + file_cnt;
+        message += (file_cnt > 1 || file_cnt == 0) ? " files" : " file";
+        if(ref_cnt > 0) message+= ':';
         return message;
     },
 
@@ -339,7 +380,7 @@ module.exports = ext.register("ext/callgraph/callgraph", {
                 if (e.keyCode >= 37 && e.keyCode <= 40) { // KEYUP or KEYDOWN
                     if (apf.isTrue(settings.model.queryValue("editors/code/filesearch/@consolelaunch"))) {
                         _self.launchFileFromCallerList(_self.callGraphConsole.$editor);
-                        _self.returnFocus = true;
+                        //_self.returnFocus = true;
                         return false;
                     }
                 }

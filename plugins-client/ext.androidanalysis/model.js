@@ -78,12 +78,15 @@ define(function(require, exports, module) {
             var sanMethod = (this.method == '<init>') ? 
                 this.class_name.split(/[$.]/).pop() :
                 this.method;
+            //console.log(this.method);
             // assuming it is a call site... but what if the sub annotation is a method def?
-            var pattern    = '(.\\s*)?'+sanMethod+'\\s*\\(';
+            var pattern    = '(?:.\\s*)?('+sanMethod+')\\s*\\(';
             var firstMatch = new RegExp(pattern, 'm').exec(doc.getLine(sanStartLine));
+            var capturedGroup = firstMatch[1];
+            var groupIndex = firstMatch.index + firstMatch[0].indexOf(capturedGroup);
             if(firstMatch) {
-                range = new Range(sanStartLine, firstMatch.index, 
-                                  sanStartLine, firstMatch.index + firstMatch[0].length)
+                range = new Range(sanStartLine, groupIndex,
+                                  sanStartLine, groupIndex + (capturedGroup.length > 1 ? capturedGroup.length-1 : 1))
             }
         } 
         // if a literal value is specified, then find the literal value in the text

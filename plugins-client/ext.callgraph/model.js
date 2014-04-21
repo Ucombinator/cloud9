@@ -15,6 +15,13 @@ define(function(require, exports, module) {
                [0].split('.') // [ ..., 'method']
                   .pop();     // 'method'
     }
+    
+    function methodDefToClassName(def) {
+        var parts = def.split(/[$.\(]/); // [ 'package', 'outer', 'inner', 'method', 'params)' ]
+        parts.pop(); // remove params
+        parts.pop(); // remove method
+        return parts.pop(); // inner class
+    }
 
     // index into the call graph with a file:line:method,
     // then check the defined_at or referenced_at property for refs and defs respectively
@@ -57,6 +64,13 @@ define(function(require, exports, module) {
 
             var path = methodDefToPath(methodDef);
             var methodName = methodDefToMethodName(methodDef);
+            
+            if(methodName == '<init>') {
+              methodName = methodDefToClassName(methodDef);
+            }
+            
+            method.name = methodName;
+            
             var method = methods[methodDef];
             var line = method.line || null;
             
@@ -86,8 +100,9 @@ define(function(require, exports, module) {
         // add defined_at
         for(var methodDef in methods) {
             var path = methodDefToPath(methodDef);
-            var methodName = methodDefToMethodName(methodDef);
             var method = methods[methodDef];
+            var methodName = method.name;
+            
             var line = method.line;
             
             var methodDefKey = path + ':' +  line + ':' + methodName;

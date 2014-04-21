@@ -359,7 +359,8 @@ module.exports = ext.register("ext/androidanalysis/risk", {
             setTimeout(function () {
                 
                 var highlightRange = anot.getRangeInDocument(doc);
-
+                var highlightWidth = (highlightRange.end.column - highlightRange.start.column);
+                
                 if(highlightRange) {
                     //markers: highlights source code
                     _self.markerId = session.addMarker(
@@ -367,6 +368,7 @@ module.exports = ext.register("ext/androidanalysis/risk", {
                        'risk_annotation', function(stringBuilder, range, left, top, viewport) {
                             var charWidth = viewport.characterWidth;
                             var width = (range.end.column - range.start.column) * charWidth;
+                            //console.log(anot.method, width > 0);
                             stringBuilder.push(
                                 "<div class='risk_annotation' style='",
                                 "left:", left, "px;",
@@ -383,6 +385,7 @@ module.exports = ext.register("ext/androidanalysis/risk", {
                 for(var i = 0; i < anot.sub_annotations.length; i++) {
                    var san = anot.sub_annotations[i];
                    var sanHighlightRange = san.getRangeInDocument(doc);
+                   var sanHighlightWidth = (sanHighlightRange.end.column - sanHighlightRange.start.column);
                    if(sanHighlightRange) {  
                     _self.markerId = session.addMarker(
                         sanHighlightRange,
@@ -390,6 +393,7 @@ module.exports = ext.register("ext/androidanalysis/risk", {
                         function(stringBuilder, range, left, top, viewport) {
                             var charWidth = viewport.characterWidth;
                             var width = (range.end.column - range.start.column) * charWidth;
+                            //console.log(san.method, width > 0);
                             stringBuilder.push(
                                 "<div class='sub_annotation' style='",
                                 "left:", left, "px;",
@@ -400,31 +404,29 @@ module.exports = ext.register("ext/androidanalysis/risk", {
                         }, 
                         false); 
                    } else {
-                     console.error('failed to highlight sub annotation' + san);
+                     console.error('failed to highlight sub annotation: ' + san.toString());
                    }                   
                 }
             }, 50);
         }
-          
-        function onJumpToFileComplete(e) {
-            ide.removeEventListener('jumpedToFile', onJumpToFileComplete);
+
+        ide.addEventListener('changeAnnotation', drawHighlights);
+
+        myutils.jumpToFile({
+          row:    (sub && selectedSubItems.length > 0 ?  
+                    parseInt(selectedSubItems[0].getAttribute('start_line')): 
+                    anot.start_line),
+          column: anot.start_col,
+          path:   anot.cloud9_path
+        }, function (e) {
             console.log(e);
             drawHighlights();
             if(sub) subAnnotationsList.focus() 
             else    annotationsList.focus();
-        }
-        
-        ide.addEventListener('changeAnnotation', drawHighlights);
-        ide.addEventListener('jumpedToFile', onJumpToFileComplete);
-
-        myutils.jumpToFile({
-          row: (sub && selectedSubItems.length > 0 ?  
-            parseInt(selectedSubItems[0].getAttribute('start_line')): anot.start_line) -1,
-          column: anot.start_col,
-          path: anot.cloud9_path
         });
+        
       } else {
-        console.log('no risk annotation selected to jump to.');
+        console.warn('no risk annotation selected to jump to.');
       }
     }    
 });
