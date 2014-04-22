@@ -1,11 +1,13 @@
 <a:application xmlns:a="http://ajax.org/2005/aml">
     <a:model id="annotationsModel"/>
     <a:model id="subAnnotationsModel"/>
+    <a:model id="editableAnnotationsModel"/>
+    <a:model id="editableSubAnnotationsModel"/>
     <a:window
       id        = "saveRiskReportDialog"
       title     = "Save Risk Report"
       center    = "true"
-      modal     = "true"
+      modal     = "false"
       buttons   = "close"
       skin      = "bk-window"
       kbclose   = "true"
@@ -98,8 +100,6 @@
         <a:page id="riskReportView" caption="Tool Risk Report">
             <a:bar border="0 0 0 0">
                 <a:hbox class="previewbar" height="36" align="center" edge="4 5 4" padding="5">
-               <a:button tooltip="save report" margin="2" onclick="saveRiskReportDialog.show()" icon="save_folder.png" skin="btn_icon_only"/>
-               <a:divider skin="c9-divider" />
                <a:button tooltip="render plaintext report" margin="2" onclick="require('ext/androidanalysis/risk').renderRiskReportPlaintext();" icon="plaintext.png" skin="btn_icon_only"/>
                <a:button tooltip="render html report" margin="2" onclick="require('ext/androidanalysis/risk').renderRiskReportHtml();" icon="markup.png" skin="btn_icon_only"/>               
                <a:divider skin="c9-divider" />
@@ -150,4 +150,63 @@
         </a:page>
         
     </a:tab>
+        <a:vbox id="riskReportEditor" caption="Risk Report">
+            <a:bar border="0 0 0 0">
+                <a:hbox class="previewbar" height="30" align="center" padding="3">
+               <a:button tooltip="save report" margin="2" onclick="saveRiskReportDialog.show()" icon="save_folder.png" skin="btn_icon_only"/>
+               <a:divider skin="c9-divider" />
+               <a:button tooltip="render plaintext report" margin="2" onclick="require('ext/androidanalysis/risk').renderEditableRiskReportPlaintext();" icon="plaintext.png" skin="btn_icon_only"/>
+               <a:button tooltip="render html report" margin="2" onclick="require('ext/androidanalysis/risk').renderEditableRiskReportHtml();" icon="markup.png" skin="btn_icon_only"/>               
+               <a:divider skin="c9-divider" />
+               <a:button tooltip="close report" margin="2" onclick="require('ext/androidanalysis/risk').closeEditableRiskReport();" skin="btn-preview-nav" skinset="previewskin" class="close"/>
+               </a:hbox>
+             </a:bar>
+           <a:hbox anchors="34 0 0 0" width="100%" height="100%">
+           <a:datagrid
+              id         = "editableAnnotationsList"
+              caching    = "false"
+              options    = "size"
+              anchors    = "0 0 0 0"
+              drop       = "true"
+              height = "100%"
+              minheight="150"
+              minwidth="200"
+              width = "60%"
+              class      = "noscrollbar"
+              scrollbar  = "sbShared 20 2 2"
+              focussable = "true"
+              model      = "editableAnnotationsModel"
+              loading-message = "Select code and press Ctrl|CMD-Shift-A to add an annotation"
+              empty-message = "Select code and press Ctrl|CMD-Shift-A to add an annotation">
+                <a:actions />
+                <a:each match="[annotation]" sort="[@risk_score]" data-type="number" order="descending">
+                    <a:column caption="Risk"        value="[@risk_score]"  width="30" />
+                    <a:column caption="Description" value="[@description]" width="100%"/>
+                    <a:column caption="Ln"          value="[@start_line]"  width="30" />
+                    <a:column caption="Col"         value="[@start_col]"   width="30" />
+                </a:each>
+            </a:datagrid>
+           <a:datagrid
+              id         = "editableSubAnnotationsList"
+              caching    = "false"
+              class      = "noscrollbar"
+              scrollbar  = "sbShared 20 2 2"
+              focussable = "true"
+              height = "100%"
+              width = "40%"
+              minheight="150"
+              minwidth="200"
+              model      = "editableSubAnnotationsModel"
+              loading-message = "Select code and press Ctrl|CMD-Shift-A to add a subannotation"
+              empty-message = "Select code and press Ctrl|CMD-Shift-A to add a subannotation">
+                <a:actions />
+                <a:each match="[subannotation]" sort="[@start_line]" data-type="number" order="ascending">
+                    <a:column caption="Risk"        value="[@risk_score]"  width="30" />
+                    <a:column caption="Description" value="[@description]" width="100%"/>
+                    <a:column caption="Ln"          value="[@start_line]"  width="30" />
+                    <a:column caption="Col"         value="[@start_col]"   width="30" />
+                </a:each>
+            </a:datagrid>
+           </a:hbox>
+       </a:vbox>
 </a:application>

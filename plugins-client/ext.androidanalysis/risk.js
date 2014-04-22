@@ -53,7 +53,8 @@ module.exports = ext.register("ext/androidanalysis/risk", {
         apf.addEventListener('rowClicked', function(e) {
            console.log(e.owner.getSelection());
            _self.clearPreviousHighlights();
-           _self.jumpToAndHighlight((e.owner.id == 'subAnnotationsList'));              
+           _self.jumpToAndHighlight((e.owner.id == 'subAnnotationsList'), 
+                annotationsList, subAnnotationsList, _self.riskReport);              
         });
 
         apf.addListener(annotationsList, 'dragdrop', function (e) {
@@ -70,25 +71,29 @@ module.exports = ext.register("ext/androidanalysis/risk", {
             var pressed = e.htmlEvent.keyIdentifier;
             if(pressed == 'Down' || pressed == 'Up') {
               _self.clearPreviousHighlights();
-              _self.jumpToAndHighlight(true);
+              _self.jumpToAndHighlight(true, 
+                annotationsList, subAnnotationsList, _self.riskReport);  
             } else if (pressed == 'Left' || pressed == 'Right') {
               annotationsList.focus();
             }
         })
         
         apf.addListener(subAnnotationsList, 'focus', function(e) {
-            _self.jumpToAndHighlight(true);
+            _self.jumpToAndHighlight(true, 
+                annotationsList, subAnnotationsList, _self.riskReport);  
         })
         
         apf.addListener(annotationsList, 'focus', function(e) {
-            _self.jumpToAndHighlight();
+            _self.jumpToAndHighlight(false, 
+                annotationsList, subAnnotationsList, _self.riskReport);  
         })
         
         apf.addListener(annotationsList, 'keydown', function (e) {
             var pressed = e.htmlEvent.keyIdentifier;
             if(pressed == 'Down' || pressed == 'Up') {
               _self.clearPreviousHighlights();
-              _self.jumpToAndHighlight();
+              _self.jumpToAndHighlight(false, 
+                annotationsList, subAnnotationsList, _self.riskReport);  
             } else if (pressed == 'Left' || pressed == 'Right') {
               subAnnotationsList.focus();
             }
@@ -103,23 +108,19 @@ module.exports = ext.register("ext/androidanalysis/risk", {
                 return true;    
             },
             exec: function() {
-                console.log(dock);
-                
-                if (_self.$panel == null) {
-                  _self.$panel = tabConsole.add(_self.pageTitle, _self.pageID);
-                }
-                
-                _self.riskReport = new RiskReport();
-                _self.loadRiskReportModel(_self.riskReport);   
+                _self.makeEditableRiskReportPanel();
+                _self.editableRiskReport = new RiskReport();
+                _self.loadEditableRiskReportModel(_self.editableRiskReport);   
             }
         });
+
 
         var command = commands.addCommand({
             name: "addSubAnnotation",
             hint: "add higlighted text as subannotation of selected annotation in android risk report",
             bindKey: {mac: "Command-Shift-S", win: "Ctrl-Shift-S"},
             isAvailable : function(editor) {
-                return editor && editor.amlEditor && _self.riskReport && annotationsList.getSelection().length > 0;
+                return editor && editor.amlEditor && _self.editableRiskReport && editableAnnotationsList.getSelection().length > 0;
             },
             exec: function(editor) {
                 var range = editor.getSelection().getRange();
@@ -140,7 +141,7 @@ module.exports = ext.register("ext/androidanalysis/risk", {
             hint: "add higlighted text to android risk report",
             bindKey: {mac: "Command-Shift-A", win: "Ctrl-Shift-A"},
             isAvailable : function(editor) {
-                return editor && editor.amlEditor && _self.riskReport;
+                return editor && editor.amlEditor && _self.editableRiskReport;
             },
             exec: function(editor) {
                 var range = editor.getSelection().getRange();
@@ -239,22 +240,22 @@ module.exports = ext.register("ext/androidanalysis/risk", {
     },
     onEditAnotDone: function () {
       this.$pendingAnnotation.long_description = anotRiskDescription.value;
-      this.$pendingAnnotation.annotation_index = this.riskReport.annotations.length;
+      this.$pendingAnnotation.annotation_index = this.editableRiskReport.annotations.length;
       this.$pendingAnnotation.path = this.$pendingAnnotation.cloud9_path.split('/src/')[1];
-      this.riskReport.annotations.push(new Annotation(this.$pendingAnnotation));
-      this.loadRiskReportModel(this.riskReport); 
+      this.editableRiskReport.annotations.push(new Annotation(this.$pendingAnnotation));
+      this.loadEditableRiskReportModel(this.editableRiskReport); 
       this.editAnnotationView.hide();
     }, 
     onEditSubAnotDone: function () {
-      var selectedItems = annotationsList.getSelection();
+      var selectedItems = editableAnnotationsList.getSelection();
       if(selectedItems.length > 0) {
           //TODO make sure the sub annotation is in the same file as the parent annotation,
           //     otherwise, they should be separate annotations
           var idx = parseInt(selectedItems[0].getAttribute('annotation_index'));
-          var anot = this.riskReport.annotations[idx];
+          var anot = this.editableRiskReport.annotations[idx];
           this.$pendingSubAnnotation.description = sanRiskDescription.value;
           anot.sub_annotations.push(new SubAnnotation(this.$pendingSubAnnotation));
-          this.loadRiskReportModel(this.riskReport); 
+          this.loadEditableRiskReportModel(this.editableRiskReport); 
       } else {
           util.alert('Failed to add sub annotation', 
                      'No parent annotation selected.');
@@ -282,9 +283,16 @@ module.exports = ext.register("ext/androidanalysis/risk", {
            annotationsList.getModel().load('');
          }
     },
+    loadEditableRiskReportModel: function (riskReport) {
+         if(riskReport) {
+           editableAnnotationsList.getModel().load('<data>\n' + riskReport.toXml() + '</data>');
+         } else {
+           editableAnnotationsList.getModel().load('');
+         }
+    },
     saveRiskReport: function () {
         fs.saveFile('/workspace/' + riskReportFilename.value, 
-            JSON.stringify(this.riskReport, null, 2), 
+            JSON.stringify(this.editableRiskReport, null, 2), 
             function(value, state, extra) {
                 if (state !== apf.SUCCESS) {
                     return util.alert("Could not save document",
@@ -299,6 +307,16 @@ module.exports = ext.register("ext/androidanalysis/risk", {
     closeRiskReport: function() {
         this.riskReport = null;
         this.loadRiskReportModel();
+        var currEditor = editors.currentEditor;
+
+        if(currEditor) {
+          var currSession = currEditor.amlEditor.getSession();
+          this.removeMarkers(currSession);
+        }
+    },
+    closeEditableRiskReport: function() {
+        this.editableRiskReport = null;
+        this.loadEditableRiskReportModel();
         var currEditor = editors.currentEditor;
 
         if(currEditor) {
@@ -324,6 +342,24 @@ module.exports = ext.register("ext/androidanalysis/risk", {
           });
         }
     },
+    renderEditableRiskReportPlaintext: function () {
+        if(this.editableRiskReport) {
+          this.editableRiskReport.toPlainText(function (text) {
+            myutils.saveAndDisplayFileInNewWindow( 
+              '/workspace/risk_report_'+myutils.guid()+'.txt', text
+            )
+          });
+        }
+    },
+    renderEditableRiskReportHtml: function () {
+        if(this.editableRiskReport) {
+          this.editableRiskReport.toHtml(function (html) {
+            myutils.saveAndDisplayFileInNewWindow( 
+              '/workspace/risk_report_'+myutils.guid()+'.html', html
+            )
+          });
+        }
+    },
     clearPreviousHighlights: function () {
     
     },
@@ -342,93 +378,73 @@ module.exports = ext.register("ext/androidanalysis/risk", {
 
             tabConsole.set(this.pageID);
 
-            this.callGraphConsole = this.$panel.appendChild(new apf.codeeditor({
-                syntax            : "c9search",
-                "class"           : "nocorner aceSearchConsole aceSearchResults",
-                theme             : "ace/theme/monokai",
-                overwrite         : "[{require('core/settings').model}::editors/code/@overwrite]",
-                folding           : "true",
-                style             : "position:absolute;left:0;right:0;top:0;bottom:0",
-                behaviors         : "[{require('core/settings').model}::editors/code/@behaviors]",
-                selectstyle       : "false",
-                activeline        : "[{require('core/settings').model}::editors/code/@activeline]",
-                gutterline        : "[{require('core/settings').model}::editors/code/@gutterline]",
-                showinvisibles    : "false",
-                showprintmargin   : "false",
-                softtabs          : "[{require('core/settings').model}::editors/code/@softtabs]",
-                tabsize           : "[{require('core/settings').model}::editors/code/@tabsize]",
-                scrollspeed       : "[{require('core/settings').model}::editors/code/@scrollspeed]",
-                newlinemode       : "[{require('core/settings').model}::editors/code/@newlinemode]",
-                animatedscroll    : "[{require('core/settings').model}::editors/code/@animatedscroll]",
-                fontsize          : "[{require('core/settings').model}::editors/code/@fontsize]",
-                gutter            : "[{require('core/settings').model}::editors/code/@gutter]",
-                highlightselectedword : "[{require('core/settings').model}::editors/code/@highlightselectedword]",
-                autohidehorscrollbar  : "[{require('core/settings').model}::editors/code/@autohidehorscrollbar]",
-                fadefoldwidgets   : "false",
-                wrapmodeViewport  : "true"
-            }));
-            
-            _self.callGraphConsole.$editor.session.setWrapLimitRange(null, null);
+            this.customRiskReport = this.$panel.appendChild(riskReportEditor);
 
             this.$panel.addEventListener("afterclose", function() {
-                this.removeNode();
+                _self.removeNode();
                 _self.$panel = null;
-                _self.consoleacedoc = null;
                 return false;
             });
-
-            _self.callGraphConsole.addEventListener("keydown", function(e) {
-                if (e.keyCode == 13) { // ENTER
-                    if (e.altKey === false) {
-                        _self.launchFileFromCallerList(_self.callGraphConsole.$editor);
-                        _self.returnFocus = false;
-                    }
-                    else {
-                        _self.callGraphConsole.$editor.insert("\n");
-                    }
-                    return false;
-                }
+            
+            apf.addEventListener('rowClicked', function(e) {
+               _self.clearPreviousHighlights();
+               _self.jumpToAndHighlight((e.owner.id == 'editableSubAnnotationsList'), 
+                    editableAnnotationsList, editableSubAnnotationsList, _self.editableRiskReport);                
             });
-
-            _self.callGraphConsole.addEventListener("keyup", function(e) {
-                if (e.keyCode >= 37 && e.keyCode <= 40) { // KEYUP or KEYDOWN
-                    if (apf.isTrue(settings.model.queryValue("editors/code/filesearch/@consolelaunch"))) {
-                        _self.launchFileFromCallerList(_self.callGraphConsole.$editor);
-                        //_self.returnFocus = true;
-                        return false;
-                    }
+            
+            apf.addListener(editableSubAnnotationsList, 'keydown', function(e) {
+                var pressed = e.htmlEvent.keyIdentifier;
+                if(pressed == 'Down' || pressed == 'Up') {
+                  _self.clearPreviousHighlights();
+                  _self.jumpToAndHighlight(true, 
+                        editableAnnotationsList, editableSubAnnotationsList, _self.editableRiskReport); 
+                } else if (pressed == 'Left' || pressed == 'Right') {
+                  editableAnnotationsList.focus();
                 }
-            });
-               
-            _self.callGraphConsole.$editor.renderer.scroller.addEventListener("dblclick", function() {
-                _self.launchFileFromCallerList(_self.callGraphConsole.$editor);
+            })
+            
+            apf.addListener(editableSubAnnotationsList, 'focus', function(e) {
+                _self.jumpToAndHighlight(true, 
+                    editableAnnotationsList, editableSubAnnotationsList, _self.editableRiskReport); 
+            })
+            
+            apf.addListener(editableAnnotationsList, 'focus', function(e) {
+                _self.jumpToAndHighlight(false, 
+                    editableAnnotationsList, editableSubAnnotationsList, _self.editableRiskReport); 
+            })
+            
+            apf.addListener(annotationsList, 'keydown', function (e) {
+                var pressed = e.htmlEvent.keyIdentifier;
+                if(pressed == 'Down' || pressed == 'Up') {
+                  _self.clearPreviousHighlights();
+                  _self.jumpToAndHighlight(false, 
+                        editableAnnotationsList, editableSubAnnotationsList, _self.editableRiskReport); 
+                } else if (pressed == 'Left' || pressed == 'Right') {
+                  editableSubAnnotationsList.focus();
+                }
             });
             
         }
         else {
-            if (apf.isTrue(settings.model.queryValue("auto/console/@clearonrun")))
-                this.consoleacedoc.removeLines(0, this.consoleacedoc.getLength());
-
             tabConsole.appendChild(this.$panel);
             tabConsole.set(this.pageID);
         }
     },
-    jumpToAndHighlight: function (sub) {
+    jumpToAndHighlight: function (sub, master, detail, model) {
       var _self = this;
+      var selectedSubItems = detail.getSelection();
+      var selectedItems = master.getSelection();
       
-      var selectedSubItems = subAnnotationsList.getSelection();
-      
-      var selectedItems = annotationsList.getSelection();
       if(selectedItems.length > 0) {
         //update the subAnnotationList
         //TODO why does subAnnotationsList sometimes take a double click to update???
         //     can this datagrid be bound directly to the selected annotation?
-        subAnnotationsList.setModel(selectedItems[0].childNodes[1] || '<subannotations></subannotations>')
+        detail.setModel(selectedItems[0].childNodes[1] || '<subannotations></subannotations>')
 
         // the index property is injected into the xml model as a way
         // to lookup the item in the backing object
         var idx = parseInt(selectedItems[0].getAttribute('annotation_index'));
-        var anot = this.riskReport.annotations[idx];
+        var anot = model.annotations[idx];
         var currEditor = editors.currentEditor;
   
         if(currEditor) {
@@ -516,8 +532,8 @@ module.exports = ext.register("ext/androidanalysis/risk", {
         }, function (e) {
             console.log(e);
             drawHighlights();
-            if(sub) subAnnotationsList.focus() 
-            else    annotationsList.focus();
+            if(sub) detail.focus() 
+            else    master.focus();
         });
         
       } else {
