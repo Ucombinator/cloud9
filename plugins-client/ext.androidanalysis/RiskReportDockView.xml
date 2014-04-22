@@ -18,7 +18,7 @@
                 File Path
             </a:hbox>
             <a:hbox padding="5" edge="10">
-                <a:textbox id="riskReportFilename" width="400"/>
+                <a:textbox id="riskReportFilename" width="200"/>
             </a:hbox>
             <a:hbox pack="end" padding="5" edge="6 10 10">
                 <a:button 
@@ -49,7 +49,7 @@
                 Description
             </a:hbox>
             <a:hbox padding="5" edge="10">
-                <a:textarea id="anotRiskDescription" height="100" width="400"/>
+                <a:textarea id="anotRiskDescription" height="100" minwidth="250" width="100%"/>
             </a:hbox>
             <a:hbox pack="end" padding="5" edge="6 10 10">
                 <a:button 
@@ -80,7 +80,7 @@
                 Description
             </a:hbox>
             <a:hbox padding="5" edge="10">
-                <a:textarea id="sanRiskDescription" height="100" width="400"/>
+                <a:textarea id="sanRiskDescription" height="100" minwidth="250" width="100%"/>
             </a:hbox>
             <a:hbox pack="end" padding="5" edge="6 10 10">
                 <a:button 
@@ -150,7 +150,7 @@
         </a:page>
         
     </a:tab>
-        <a:vbox id="riskReportEditor" caption="Risk Report">
+        <a:vbox id="riskReportEditor" caption="Risk Report" visible="false">
             <a:bar border="0 0 0 0">
                 <a:hbox class="previewbar" height="30" align="center" padding="3">
                <a:button tooltip="save report" margin="2" onclick="saveRiskReportDialog.show()" icon="save_folder.png" skin="btn_icon_only"/>

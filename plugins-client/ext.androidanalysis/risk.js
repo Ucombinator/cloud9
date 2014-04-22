@@ -379,6 +379,7 @@ module.exports = ext.register("ext/androidanalysis/risk", {
             tabConsole.set(this.pageID);
 
             this.customRiskReport = this.$panel.appendChild(riskReportEditor);
+            riskReportEditor.setAttribute('visible', true);
 
             this.$panel.addEventListener("afterclose", function() {
                 _self.removeNode();
@@ -413,7 +414,7 @@ module.exports = ext.register("ext/androidanalysis/risk", {
                     editableAnnotationsList, editableSubAnnotationsList, _self.editableRiskReport); 
             })
             
-            apf.addListener(annotationsList, 'keydown', function (e) {
+            apf.addListener(editableAnnotationsList, 'keydown', function (e) {
                 var pressed = e.htmlEvent.keyIdentifier;
                 if(pressed == 'Down' || pressed == 'Up') {
                   _self.clearPreviousHighlights();
