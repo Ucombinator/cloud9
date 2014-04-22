@@ -16,7 +16,7 @@
                 File Path
             </a:hbox>
             <a:hbox padding="5" edge="10">
-                <a:textbox id="riskReportFilename" />
+                <a:textbox id="riskReportFilename" width="400"/>
             </a:hbox>
             <a:hbox pack="end" padding="5" edge="6 10 10">
                 <a:button 
@@ -47,7 +47,7 @@
                 Description
             </a:hbox>
             <a:hbox padding="5" edge="10">
-                <a:textbox id="anotRiskDescription" minheight="5" minwidth="20"/>
+                <a:textarea id="anotRiskDescription" height="100" width="400"/>
             </a:hbox>
             <a:hbox pack="end" padding="5" edge="6 10 10">
                 <a:button 
@@ -58,7 +58,7 @@
                 <a:button 
                   caption = "Cancel" 
                   skin    = "btn-default-css3"
-                  onclick = "require('ext/androidanalysis/risk').onEditAnotCancel();"
+                  onclick = "editAnnotationView.hide()"
                  />
             </a:hbox>
         </a:vbox>
@@ -78,7 +78,7 @@
                 Description
             </a:hbox>
             <a:hbox padding="5" edge="10">
-                <a:textbox id="sanRiskDescription" minheight="5" minwidth="20"/>
+                <a:textarea id="sanRiskDescription" height="100" width="400"/>
             </a:hbox>
             <a:hbox pack="end" padding="5" edge="6 10 10">
                 <a:button 
@@ -89,28 +89,31 @@
                 <a:button 
                   caption = "Cancel" 
                   skin    = "btn-default-css3"
-                  onclick = "require('ext/androidanalysis/risk').onEditSubAnotCancel();"
+                  onclick = "editSubAnnotationView.hide()"
                  />
             </a:hbox>
         </a:vbox>
     </a:window>
-    <a:tab id="riskReportViewTab" visible="false" activepage="0" drag="false">
-        <a:page id="riskReportView" caption="Risk Report">
-            <a:toolbar>
-              <a:bar>
-               <a:button caption="render report" onclick="require('ext/androidanalysis/risk').renderRiskReport();"/>
-               <a:button caption="save" onclick="saveRiskReportDialog.show()"/>
-               <a:button caption="close" onclick="require('ext/androidanalysis/risk').closeRiskReport();"/>
+    <a:tab id="riskReportViewTab" activepage="0"  skin="docktab" visible="false">
+        <a:page id="riskReportView" caption="Tool Risk Report">
+            <a:bar border="0 0 0 0">
+                <a:hbox class="previewbar" height="36" align="center" edge="4 5 4" padding="5">
+               <a:button tooltip="save report" margin="2" onclick="saveRiskReportDialog.show()" icon="save_folder.png" skin="btn_icon_only"/>
+               <a:divider skin="c9-divider" />
+               <a:button tooltip="render plaintext report" margin="2" onclick="require('ext/androidanalysis/risk').renderRiskReportPlaintext();" icon="plaintext.png" skin="btn_icon_only"/>
+               <a:button tooltip="render html report" margin="2" onclick="require('ext/androidanalysis/risk').renderRiskReportHtml();" icon="markup.png" skin="btn_icon_only"/>               
+               <a:divider skin="c9-divider" />
+               <a:button tooltip="close report" margin="2" onclick="require('ext/androidanalysis/risk').closeRiskReport();" skin="btn-preview-nav" skinset="previewskin" class="close"/>
+               </a:hbox>
              </a:bar>
-           </a:toolbar>
-           <a:vsplitbox anchors="29 0 0 0" splitter="true" class="topsplitter">
+           <a:vsplitbox anchors="34 0 0 0" splitter="true" class="topsplitter">
            <a:datagrid
               id         = "annotationsList"
               anchors    = "0 0 0 0"
               caching    = "false"
               options    = "size"
               drop       = "true"
-              minheight  = "100"
+              minheight  = "80"
               class      = "noscrollbar"
               scrollbar  = "sbShared 20 2 2"
               focussable = "true"

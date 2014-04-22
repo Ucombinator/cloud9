@@ -1099,10 +1099,13 @@ module.exports = ext.register("ext/editors/editors", {
                 setTimeout(function() {
                     ace.focus();
                     ide.dispatchEvent("aftereditorfocus");
+                    options.success = true;
                     ide.dispatchEvent('jumpedToFile', options);
                 }, 1);
-            } else
+            } else {
+              options.success = false;
               ide.dispatchEvent('jumpedToFile', options);
+            }
         }
 
         function jumpTo() {

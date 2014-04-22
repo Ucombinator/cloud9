@@ -83,7 +83,26 @@ module.exports = ext.register("ext/callgraph/callgraph", {
                 //apf.layout.forceResize(_self.callGraphConsole.$ext);
             }
         });
-  
+        
+        commands.addCommand({
+            name: "bookmarkLine",
+            hint: "bookmark a line to return to it later",
+            msg: "It will appear in the Log",
+            bindKey: {mac: "Command-Shift-B", win: "Ctrl-Shift-B"},
+            isAvailable : function() {
+                return true;    
+            },
+            exec: function() {
+                var editor  = editors.currentEditor.amlEditor.$editor;
+                var selection   = editor.getSelection();
+                var range       = selection.getLineRange();
+                var path    = editor.session.c9doc.getNode().getAttribute("path");
+                var row     = range.start.row; 
+                var rowText = selection.doc.getTextRange(range).replace('\n', ''); 
+
+                _self.displayMessage(["Bookmark", path.replace(ide.davPrefix, '')+':', '    ' + (row+1) + ': ' + rowText]); 
+            }
+        })
     },
     onClickCodeEditor : function (path, line, identifier) {
         var _self = this;
@@ -111,7 +130,7 @@ module.exports = ext.register("ext/callgraph/callgraph", {
                 ++line; 
                 if(line > (originalLine + MAX_LINE_ERROR)) {
                      console.error('could not find method def ' + srcPath+':'+originalLine + '-' + line+':'+identifier);
-                     _self.displayMessage('The method ' + identifier + ' in ' + srcPath + ' is not in the call graph.');
+                     _self.displayMessage('The method ' + identifier + ' in ' + srcPath + ' is not in the call graph at this source line.');
                      _self.setHighlight(_self.callGraphConsole.$editor.getSession(), identifier);
                      break;
                 }
@@ -124,10 +143,11 @@ module.exports = ext.register("ext/callgraph/callgraph", {
                for(var defPath in method.defined_at) {
                   var row = method.defined_at[defPath][0];
                   if(row == null) {
-                    _self.displayMessage("No source info for " + identifier + ".");
-                    _self.setHighlight(_self.callGraphConsole.$editor.getSession(), identifier);
-                  } else
-                    _self.jumpToDefinition(basePath + defPath, row-1, identifier);  
+                    _self.jumpToDefinition(basePath + defPath, null, identifier); 
+                  } else {
+                    _self.jumpToDefinition(basePath + defPath, row-1, identifier); 
+                  }
+                  break; // currently only 1 definition (not adding subclass methods to graph (?) 
                }
                
             }
@@ -155,35 +175,49 @@ module.exports = ext.register("ext/callgraph/callgraph", {
         var range       = selection.getLineRange();
         var prevPath    = prevEditor.session.c9doc.getNode().getAttribute("path");
         var prevRow     = range.start.row; 
-        var prevRowText = selection.doc.getTextRange(range).replace('\n', '');             
-        
-        // TODO get the current focused document & row
-        myutils.jumpToFile({
-            path: path,
-            row: row,
-            column: 0,
-            text: identifier
-        }, function (e) {
-            // TODO the line is off due to method def line being first instruction line
-            //      need to correct when loading call graph to avoid this...
-            var newEditor    = editors.currentEditor.amlEditor.$editor;
-            var newSelection = newEditor.getSelection();
-            var newRange     = newSelection.getLineRange();
-            var newPath      = newEditor.session.c9doc.getNode().getAttribute("path");
-            var newRow       = newRange.start.row; 
-            var newRowText = newSelection.doc.getTextRange(newRange).replace('\n', '');  
+        var prevRowText = selection.doc.getTextRange(range).replace('\n', ''); 
 
-            _self.displayMessage([
-                'jumped to definition of ' + identifier + ' at ',
-                path.replace(ide.davPrefix, '') + ':',
-                '    ' + (newRow+1) + ': ' + newRowText,
-                'from',
-                prevPath.replace(ide.davPrefix, '') + ':',
-                '    ' + (prevRow+1) + ': ' + prevRowText
-            ]);
+        fs.exists(path, function(exists) {
+            if(!exists) {
+                _self.displayMessage("No source info available for " + identifier + " at path " + path.replace(ide.davPrefix, ''));
+            } else {
+                selection.clearSelection(); 
+                myutils.jumpToFile({
+                    path: path,
+                    row: row != null ? row : 0,
+                    column: 0,
+                    text: identifier
+                }, function (e) {
+                    // TODO the line is off due to method def line being first instruction line
+                    //      need to correct when loading call graph to avoid this...
+                    var newEditor    = editors.currentEditor.amlEditor.$editor;
+                    var newPath      = newEditor.session.c9doc.getNode().getAttribute("path");
+                    var newSelection = newEditor.getSelection();
+                    
+                    if(row == null) {
+                       newSelection.selectFileStart();
+                    } else {
+                       //TODO find the text
+                       
+                       newSelection.setSelectionRange(new Range(row, 0, row, newSelection.doc.getLine(row).length-1));
+                    }
+                    
+                    var newRange     = newSelection.getLineRange();
+                    var newRow       = newRange.start.row; 
+                    var newRowText = newSelection.doc.getTextRange(newRange).replace('\n', '');
 
-            _self.setHighlight(_self.callGraphConsole.$editor.getSession(), identifier);
-        });
+                    _self.displayMessage([
+                        'jumped from ' + identifier + ' reference at',
+                        prevPath.replace(ide.davPrefix, '') + ':',
+                        '    ' + (prevRow+1) + ': ' + prevRowText,
+                        'to definition ' + (row == null ? ' in file (exact source info line unavailable)' : ' at'),
+                        path.replace(ide.davPrefix, '') + ':',
+                        '    ' + (newRow+1) + ': ' + newRowText
+                    ]);
+                    _self.setHighlight(_self.callGraphConsole.$editor.getSession(), identifier);
+                });
+            }
+        })
     },
     displayMessage: function (msg) {
         var _self = this;

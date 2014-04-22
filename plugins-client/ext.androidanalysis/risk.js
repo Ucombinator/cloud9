@@ -114,7 +114,6 @@ module.exports = ext.register("ext/androidanalysis/risk", {
             }
         });
 
-
         var command = commands.addCommand({
             name: "addSubAnnotation",
             hint: "add higlighted text as subannotation of selected annotation in android risk report",
@@ -307,11 +306,20 @@ module.exports = ext.register("ext/androidanalysis/risk", {
           this.removeMarkers(currSession);
         }
     },
-    renderRiskReport: function () {
+    renderRiskReportPlaintext: function () {
         if(this.riskReport) {
           this.riskReport.toPlainText(function (text) {
             myutils.saveAndDisplayFileInNewWindow( 
-              '/workspace/risk_report.txt', text
+              '/workspace/risk_report_'+myutils.guid()+'.txt', text
+            )
+          });
+        }
+    },
+    renderRiskReportHtml: function () {
+        if(this.riskReport) {
+          this.riskReport.toHtml(function (html) {
+            myutils.saveAndDisplayFileInNewWindow( 
+              '/workspace/risk_report_'+myutils.guid()+'.html', html
             )
           });
         }
@@ -325,7 +333,6 @@ module.exports = ext.register("ext/androidanalysis/risk", {
             if (markers[id].clazz.indexOf('_annotation') != -1) 
                 session.removeMarker(id); 
     },
-    
     makeEditableRiskReportPanel : function() {
         var _self = this;
         // create editor if it does not exist
