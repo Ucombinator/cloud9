@@ -51,10 +51,12 @@ module.exports = ext.register("ext/androidanalysis/risk", {
         
         
         apf.addEventListener('rowClicked', function(e) {
-           console.log(e.owner.getSelection());
-           _self.clearPreviousHighlights();
-           _self.jumpToAndHighlight((e.owner.id == 'subAnnotationsList'), 
-                annotationsList, subAnnotationsList, _self.riskReport);              
+            if(e.owner.id == 'subAnnotationsList' || e.owner.id == 'annotationsList') {
+                _self.clearPreviousHighlights();
+                _self.jumpToAndHighlight((e.owner.id == 'subAnnotationsList'), 
+                    annotationsList, subAnnotationsList, _self.riskReport);  
+                return false;
+            }            
         });
 
         apf.addListener(annotationsList, 'dragdrop', function (e) {
@@ -388,9 +390,12 @@ module.exports = ext.register("ext/androidanalysis/risk", {
             });
             
             apf.addEventListener('rowClicked', function(e) {
-               _self.clearPreviousHighlights();
-               _self.jumpToAndHighlight((e.owner.id == 'editableSubAnnotationsList'), 
-                    editableAnnotationsList, editableSubAnnotationsList, _self.editableRiskReport);                
+               if(e.owner.id == 'editableSubAnnotationsList' || e.owner.id == 'editableAnnotationsList') {
+                   _self.clearPreviousHighlights();
+                   _self.jumpToAndHighlight((e.owner.id == 'editableSubAnnotationsList'), 
+                        editableAnnotationsList, editableSubAnnotationsList, _self.editableRiskReport); 
+                   return false;
+               }               
             });
             
             apf.addListener(editableSubAnnotationsList, 'keydown', function(e) {

@@ -55,10 +55,11 @@ module.exports = ext.register("ext/callgraph/callgraph", {
         var _self = this;
         this.callGraphs = {};
 
-        ide.addEventListener("aftereditorfocus", function(e) {
-            if (_self.callGraphConsole && _self.returnFocus)
-                _self.callGraphConsole.focus(); 
-        });
+        // race condition when there is another risk report open?
+        //ide.addEventListener("aftereditorfocus", function(e) {
+        //    if (_self.callGraphConsole && _self.returnFocus)
+        //        _self.callGraphConsole.focus(); 
+        //});
         
         require('ext/codetools/codetools').register(this/*the parameter should be an observer, but is ignored*/);
         
