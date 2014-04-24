@@ -44,10 +44,23 @@ module.exports = ext.register("ext/androidanalysis/risk", {
     pageID   : "pgRiskReportBelow",
     nodes : [],
     init : function () {
+    
+        String.prototype.endsWith = function(suffix) {
+            return this.indexOf(suffix, this.length - suffix.length) !== -1;
+        };
+        
         this.riskReportView = riskReportView;
         this.editAnnotationView = editAnnotationView;
         this.editSubAnnotationView = editSubAnnotationView;
         var _self = this;
+        
+        // make the standard source files read only
+        ide.addEventListener("openfile", function(e) {
+            var editor = e.editor.amlEditor.$editor;
+            if(e.page.name.endsWith('.xml') || e.page.name.endsWith('.java')) {
+                editor.setReadOnly(true);
+            }
+        })
         
         
         apf.addEventListener('rowClicked', function(e) {
@@ -473,11 +486,9 @@ module.exports = ext.register("ext/androidanalysis/risk", {
             // the language worker clears the annotations, so wait for it to do it's work,
             // then add our annotations over the top
             // (although this may not be a problem for read-only java files...)
-            setTimeout(function () {
-                
+            setTimeout(function () {              
                 var highlightRange = anot.getRangeInDocument(doc);
-                var highlightWidth = (highlightRange.end.column - highlightRange.start.column);
-                
+
                 if(highlightRange) {
                     //markers: highlights source code
                     _self.markerId = session.addMarker(
@@ -502,7 +513,6 @@ module.exports = ext.register("ext/androidanalysis/risk", {
                 for(var i = 0; i < anot.sub_annotations.length; i++) {
                    var san = anot.sub_annotations[i];
                    var sanHighlightRange = san.getRangeInDocument(doc);
-                   var sanHighlightWidth = (sanHighlightRange.end.column - sanHighlightRange.start.column);
                    if(sanHighlightRange) {  
                     _self.markerId = session.addMarker(
                         sanHighlightRange,

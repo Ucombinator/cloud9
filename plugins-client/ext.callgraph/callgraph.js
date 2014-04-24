@@ -54,12 +54,6 @@ module.exports = ext.register("ext/callgraph/callgraph", {
     init : function(amlNode){
         var _self = this;
         this.callGraphs = {};
-
-        // race condition when there is another risk report open?
-        //ide.addEventListener("aftereditorfocus", function(e) {
-        //    if (_self.callGraphConsole && _self.returnFocus)
-        //        _self.callGraphConsole.focus(); 
-        //});
         
         require('ext/codetools/codetools').register(this/*the parameter should be an observer, but is ignored*/);
         
@@ -194,13 +188,24 @@ module.exports = ext.register("ext/callgraph/callgraph", {
                     var newEditor    = editors.currentEditor.amlEditor.$editor;
                     var newPath      = newEditor.session.c9doc.getNode().getAttribute("path");
                     var newSelection = newEditor.getSelection();
-                    
+                    var foundMethodDef = true;
                     if(row == null) {
+                       foundMethodDef = false;
                        newSelection.selectFileStart();
                     } else {
-                       //TODO find the text
+                       var origRow = row;
+                       var methodDefIndex = 0;
+                       while((methodDefIndex = newSelection.doc.getLine(row).indexOf(identifier)) < 0) {
+                         if(--row < 0) {
+                             // method not found after searching upward, so just highlight the first line of the file
+                             foundMethodDef = false;
+                             newSelection.selectFileStart();
+                             break;
+                         }
+                       }
                        
-                       newSelection.setSelectionRange(new Range(row, 0, row, newSelection.doc.getLine(row).length-1));
+                       if(foundMethodDef)
+                         newSelection.setSelectionRange(new Range(row, methodDefIndex, row, methodDefIndex.length-1));
                     }
                     
                     var newRange     = newSelection.getLineRange();
@@ -208,10 +213,10 @@ module.exports = ext.register("ext/callgraph/callgraph", {
                     var newRowText = newSelection.doc.getTextRange(newRange).replace('\n', '');
 
                     _self.displayMessage([
-                        'jumped from ' + identifier + ' reference at',
+                        'jumped from ' + identifier + ' reference at...',
                         prevPath.replace(ide.davPrefix, '') + ':',
                         '    ' + (prevRow+1) + ': ' + prevRowText,
-                        'to definition ' + (row == null ? ' in file (exact source info line unavailable)' : ' at'),
+                        'to definition ' + (foundMethodDef ? ' at...' : ' in file (exact source info line unavailable)'),
                         path.replace(ide.davPrefix, '') + ':',
                         '    ' + (newRow+1) + ': ' + newRowText
                     ]);

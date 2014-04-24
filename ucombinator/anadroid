@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -e
+set -u
+set -o
+set -x
+
+#
+# Usage: anadroid path/to/apk
+#
+# expects: 
+#   environment variable ANADROID_HOME defined 
+#   sbt installed
+
+TIMEOUT=1 # mins
+     
+start_dir=$(pwd)
+
+echo "${ANADROID_HOME}"
+
+cd "${ANADROID_HOME}"
+
+java -jar anadroid.jar org.ucombinator.dalvik.cfa.cesk.RunAnalysis --interrupt-after-time $TIMEOUT "${1}" 
+
+cd "${start_dir}"

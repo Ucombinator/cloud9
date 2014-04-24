@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -e
+
+#
+# Usage: tapas path/to/apk output/results/path
+#
+# expects: 
+#   environment variable TAPAS_HOME defined 
+#   sbt installed
+     
+start_dir=$(pwd)
+
+cd "${TAPAS_HOME}"
+
+sbt "run ${1} ${2}"
+
+cd "${start_dir}"
