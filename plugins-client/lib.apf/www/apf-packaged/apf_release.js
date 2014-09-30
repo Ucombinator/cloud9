@@ -14639,13 +14639,9 @@ apf.http = function(){
         if (http.status > 600)
             return this.$timeout(id);
 
-        try{
-            extra.data = qItem.options.useJSON 
-                ? JSON.parse(http.responseText) 
-                : http.responseText;
-        } catch(e) {
-            errorMessage.push(e); 
-        }
+        extra.data = qItem.options.useJSON 
+            ? eval("(" + http.responseText + ")") 
+            : http.responseText; //Can this error?
 
         if (http.status >= 400 && http.status < 600 || http.status < 10 
           && (http.status != 0 || !apf.isIE && !http.responseText)) { //qItem.url.substr(0, 6) == "file:/"
@@ -50963,7 +50959,7 @@ apf.datagrid = function(struct, tagName){
             oRow.setAttribute("onmousedown", 'var o = apf.lookup(' + this.$uniqueId + ');\
                 var xmlNode = apf.xmldb.findXmlNode(this);\
                  var isSelected = o.isSelected(xmlNode);\
-                 this.hasPassedDown = true;  apf.dispatchEvent(\'rowClicked\', { owner: o, row: this});  \
+                 this.hasPassedDown = true;  apf.dispatchEvent(\'rowClicked\', this);  \
                  if (!o.hasFeature(apf.__DRAGDROP__) || !isSelected && !apf.getCtrlKey(event))\
                      o.select(this, apf.getCtrlKey(event), event.shiftKey, -1);'
                 + (this.cellselect || this.namevalue ? 'o.selectCell(event, this, isSelected);' : ''));
@@ -50978,7 +50974,7 @@ apf.datagrid = function(struct, tagName){
         else {
             oRow.setAttribute("onmousedown", 'var o = apf.lookup(' + this.$uniqueId + ');\
                 var wasSelected = o.$selected == this;\
-                o.select(this, apf.getCtrlKey(event), event.shiftKey, -1);  apf.dispatchEvent(\'rowClicked\', {owner: o, row: this}); ' 
+                o.select(this, apf.getCtrlKey(event), event.shiftKey, -1);  apf.dispatchEvent(\'rowClicked\', this); ' 
                 + (this.cellselect || this.namevalue ? 'o.selectCell(event, this, wasSelected);' : ''));
         }
         
