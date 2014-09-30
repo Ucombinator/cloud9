@@ -62,20 +62,21 @@ module.exports = ext.register("ext/androidanalysis/risk", {
             }
         })
         
-        
-        apf.addEventListener('rowClicked', function(e) {
-            if(e.owner.id == 'subAnnotationsList' || e.owner.id == 'annotationsList') {
+        apf.addListener(annotationsList, 'afterselect', function(e) {
                 _self.clearPreviousHighlights();
-                _self.jumpToAndHighlight((e.owner.id == 'subAnnotationsList'), 
-                    annotationsList, subAnnotationsList, _self.riskReport);  
-                return false;
-            }            
+                _self.jumpToAndHighlight(false, annotationsList, subAnnotationsList, _self.riskReport);  
+                return false;            
+        });
+        
+        apf.addListener(subAnnotationsList, 'afterselect', function(e) {
+                _self.clearPreviousHighlights();
+                _self.jumpToAndHighlight(true, annotationsList, subAnnotationsList, _self.riskReport);  
+                return false;            
         });
 
         apf.addListener(annotationsList, 'dragdrop', function (e) {
             var path;
             if(e.data.length > 0 && (path = e.data[0].getAttribute("path"))) {
-                console.log('dropped file ' + path + ' on risk report grid'); 
                 _self.openRiskReport(path);
             }
             // TODO: get rid of the fly back animation on the cancelled drop somehow
